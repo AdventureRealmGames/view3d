@@ -1,4 +1,6 @@
-use bevy::{prelude::*, render::camera::Viewport, window::PrimaryWindow};
+use std::f32::consts::PI;
+
+use bevy::{pbr::CascadeShadowConfigBuilder, prelude::*, render::camera::Viewport, window::PrimaryWindow};
 use bevy_egui::{
     egui, EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
     PrimaryEguiContext,
@@ -111,46 +113,80 @@ fn ui_example_system(
     Ok(())
 }
 
-// Set up the example entities for the scene. The only important thing is a camera which
+// Set up the example entities for the 3D scene. The only important thing is a camera which
 // renders directly to the window.
 fn setup_system(
     mut commands: Commands,
     mut egui_global_settings: ResMut<EguiGlobalSettings>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // Disable the automatic creation of a primary context to set it up manually for the camera we need.
     egui_global_settings.auto_create_primary_context = false;
 
-    // Circle.
-    commands.spawn((
-        Mesh2d(meshes.add(Circle::new(50.))),
-        MeshMaterial2d(materials.add(ColorMaterial::from_color(Color::srgb(0.2, 0.1, 0.0)))),
-        Transform::from_translation(Vec3::new(-150., 0., 0.)),
+    // Add a light source
+  commands.spawn((
+        DirectionalLight {
+            illuminance: light_consts::lux::OVERCAST_DAY,
+            shadows_enabled: true,
+            ..default()
+        },
+        Transform::from_rotation(Quat::from_euler(EulerRot::ZYX, 0.0, PI / 2., -PI / 4.)),
+        CascadeShadowConfigBuilder {
+            first_cascade_far_bound: 7.0,
+            maximum_distance: 25.0,
+            ..default()
+        }
+        .build(),
     ));
 
-    // Rectangles.
+    // Cube
     commands.spawn((
-        Mesh2d(meshes.add(Rectangle::new(50., 100.))),
-        MeshMaterial2d(materials.add(ColorMaterial::from_color(Color::srgb(0.5, 0.4, 0.3)))),
-        Transform::from_translation(Vec3::new(-50., 0., 0.)),
-    ));
-    commands.spawn((
-        Mesh2d(meshes.add(Rectangle::new(50., 100.))),
-        MeshMaterial2d(materials.add(ColorMaterial::from_color(Color::srgb(0.5, 0.4, 0.3)))),
-        Transform::from_translation(Vec3::new(50., 0., 0.)),
+        Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::srgb(0.8, 0.2, 0.2),
+            ..default()
+        })),
+        Transform::from_xyz(-2.0, 0.5, 0.0),
     ));
 
-    // Hexagon.
+    // Sphere
     commands.spawn((
-        Mesh2d(meshes.add(RegularPolygon::new(50., 6))),
-        MeshMaterial2d(materials.add(ColorMaterial::from_color(Color::srgb(0.8, 0.7, 0.6)))),
-        Transform::from_translation(Vec3::new(150., 0., 0.)),
+        Mesh3d(meshes.add(Sphere::new(0.5))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::srgb(0.2, 0.8, 0.2),
+            ..default()
+        })),
+        Transform::from_xyz(0.0, 0.5, 0.0),
     ));
 
-    // World camera.
-    commands.spawn(Camera2d);
-    // Egui camera.
+    // Cylinder
+    commands.spawn((
+        Mesh3d(meshes.add(Cylinder::new(0.5, 1.0))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::srgb(0.2, 0.2, 0.8),
+            ..default()
+        })),
+        Transform::from_xyz(2.0, 0.5, 0.0),
+    ));
+
+    // Ground plane
+    commands.spawn((
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::srgb(0.3, 0.5, 0.3),
+            ..default()
+        })),
+        Transform::from_xyz(0.0, 0.0, 0.0),
+    ));
+
+    // 3D World camera positioned to view the scene
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
+    ));
+
+    // Egui camera
     commands.spawn((
         // The `PrimaryEguiContext` component requires everything needed to render a primary context.
         PrimaryEguiContext,
