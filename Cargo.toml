@@ -3,11 +3,17 @@ name = "view3d"
 version = "0.1.0"
 edition = "2024"
 
+
 [dependencies]
 bevy = "0.16.1"
 bevy_render = "0.16.1"
 bevy_egui = "0.36"
-
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.145"
+chrono = { version = "0.4.42", features= ["serde"] }
+walkdir = "2.5.0"
+directories = "6.0.0"
+dirs = "6.0.0"
 
 
 # Set max log levels. This helps avoid unwanted low-severity log spam, which can affect performance.
@@ -19,6 +25,8 @@ tracing = { version = "0.1", features = [
     "max_level_debug",
     "release_max_level_warn",
 ] }
+
+
 
 # Idiomatic Bevy code often triggers these lints, and the CI workflow treats them as errors.
 # In some cases they may still signal poor code quality however, so consider commenting out these lines.
