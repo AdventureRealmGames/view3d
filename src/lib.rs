@@ -1,15 +1,7 @@
-use std::env;
-use std::fs::{File, ReadDir};
-use std::io::{Read, Write};
-use directories::UserDirs;
+use std::fs::ReadDir;
 use serde::{Deserialize, Serialize};
 
-use std::path::PathBuf;
-use std::{
-    fs::{self},
-    path::Path,
-    sync::Arc,
-};
+use std::fs::{self};
 
 
 #[derive(Serialize, Deserialize)]
