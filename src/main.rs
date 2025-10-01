@@ -1,11 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::{
-    pbr::CascadeShadowConfigBuilder,
-    prelude::*,
-    render::camera::Viewport,
-    tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
-    window::PrimaryWindow,
+    ecs::relationship::RelationshipSourceCollection, pbr::CascadeShadowConfigBuilder, prelude::*, render::camera::Viewport, tasks::{block_on, poll_once, AsyncComputeTaskPool, Task}, window::PrimaryWindow
 };
 use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
@@ -19,11 +15,16 @@ fn main() {
         .insert_resource(ClearColor(Color::srgb(0.25, 0.25, 0.25)))
         .init_resource::<Directory>()
         .init_resource::<OpenFile>()
-        .add_plugins(DefaultPlugins)
+        .init_resource::<CurrentGltfEntity>()
+        .add_plugins(DefaultPlugins.set(AssetPlugin {
+            unapproved_path_mode: bevy::asset::UnapprovedPathMode::Allow,
+            ..Default::default()
+        }))
         .add_plugins(EguiPlugin::default())
         .add_systems(Startup, setup_scene)
         .add_systems(EguiPrimaryContextPass, ui_system)
         .add_systems(Update, check_dir_changed)
+        .add_systems(Update, check_open_file_changed)
         .run();
 }
 
@@ -42,6 +43,9 @@ impl Default for OpenFile {
         Self("".to_string())
     }
 }
+
+#[derive(Resource, Default)]
+struct CurrentGltfEntity(Option<Entity>);
 
 /// Helper function to read directory contents with proper error handling
 fn read_directory_files(path: &str) -> Vec<String> {
@@ -93,6 +97,52 @@ fn read_directory_files(path: &str) -> Vec<String> {
 fn check_dir_changed(dir: Res<Directory>, mut file_list: ResMut<FileList>) {
     if dir.is_changed() {
         file_list.0 = read_directory_files(&dir.0);
+    }
+}
+
+fn check_open_file_changed(
+    mut commands: Commands,
+    open_file: Res<OpenFile>,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut current_gltf: ResMut<CurrentGltfEntity>,
+) {
+    if open_file.is_changed() {
+        // Despawn the old GLTF entity if it exists
+        if let Some(old_entity) = current_gltf.0 {
+            println!("Despawning old GLTF entity: {:?}", old_entity);
+            commands.entity(old_entity).despawn_recursive();
+        }
+
+        let file_name = format!("{}#Scene0", open_file.0);
+        println!("Filename: {}",file_name);
+        let scene = asset_server.load(file_name);
+        let scale = 1.0;
+        let land_entity = commands
+            .spawn((
+                SceneRoot(scene.clone()), //#Scene0
+                Visibility::Visible,
+                //transform: Transform::from_scale(Vec3::new(0.1,0.1,0.1)),
+                Transform {
+                    translation: Vec3::new(0.0, 0.0, 0.0),
+                    rotation: Default::default(),
+                    scale: Vec3::new(scale, scale, scale),
+                },
+                //RigidBody::Static,
+                // we are now adding this per object in blender.
+                //ColliderConstructorHierarchy::new(ColliderConstructor::TrimeshFromMesh),
+                // Mass(1.0),
+                //COLIDER
+                //Collider::trimesh_from_mesh(mesh)
+                //AsyncSceneCollider { shape: Some(ComputedColliderShape::TriMesh(Default::default())), named_shapes: Default::default() },
+                //RigidBody::Fixed {},
+                //collider
+            ))
+            .id();
+        
+        // Store the new entity ID
+        current_gltf.0 = Some(land_entity);
     }
 }
 
@@ -353,7 +403,7 @@ fn setup_scene(
         }
         .build(),
     ));
-
+/*
     // Cube
     commands.spawn((
         Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
@@ -393,7 +443,7 @@ fn setup_scene(
         })),
         Transform::from_xyz(0.0, 0.0, 0.0),
     ));
-
+*/
     // 3D World camera positioned to view the scene
     commands.spawn((
         Camera3d::default(),
