@@ -9,8 +9,12 @@
 * Info about model in right panel
 * Shadows toggle
 * Arrow keys for next/previous in list
+* Sort list by name or date
+
   
 # DOING
+* Button styling
+
 
 # DONE
 * Support GLTF
