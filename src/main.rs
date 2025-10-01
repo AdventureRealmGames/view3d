@@ -1,41 +1,215 @@
 use std::f32::consts::PI;
 
-use bevy::{pbr::CascadeShadowConfigBuilder, prelude::*, render::camera::Viewport, window::PrimaryWindow};
+use bevy::{
+    pbr::CascadeShadowConfigBuilder,
+    prelude::*,
+    render::camera::Viewport,
+    tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
+    window::PrimaryWindow,
+};
 use bevy_egui::{
-    egui, EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
-    PrimaryEguiContext,
+    EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
+    PrimaryEguiContext, egui,
 };
 use bevy_render::view::RenderLayers;
+use view3d::list_dir;
 
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::srgb(0.25, 0.25, 0.25)))
+        .init_resource::<Directory>()
         .add_plugins(DefaultPlugins)
         .add_plugins(EguiPlugin::default())
-        .add_systems(Startup, setup_system)
-        .add_systems(EguiPrimaryContextPass, ui_example_system)
+        .add_systems(Startup, setup_scene)
+        .add_systems(EguiPrimaryContextPass, ui_system)
+        .add_systems(Update, check_dir_changed)
         .run();
 }
+
+#[derive(Resource)]
+struct Directory(String);
+
+impl Default for Directory {
+    fn default() -> Self {
+        Self(".".to_string())
+    }
+}
+
+/// Helper function to read directory contents with proper error handling
+fn read_directory_files(path: &str) -> Vec<String> {
+    // Define accepted file extensions
+    let accepted_extensions = ["glb", "gltf"];
+    
+    match std::fs::read_dir(path) {
+        Ok(entries) => entries
+            .filter_map(|e| e.ok())
+            .filter(|e| {
+                // Allow directories
+                if e.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                    return true;
+                }
+                
+                // Check if file has an accepted extension
+                e.path()
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .map(|ext| accepted_extensions.contains(&ext))
+                    .unwrap_or(false)
+            })
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .collect(),
+        Err(e) => {
+            error!("Failed to read directory '{}': {}", path, e);
+            Vec::new()
+        }
+    }
+}
+
+fn check_dir_changed(dir: Res<Directory>, mut file_list: ResMut<FileList>) {
+    if dir.is_changed() {
+        file_list.0 = read_directory_files(&dir.0);
+    }
+}
+
+#[derive(Default)]
+pub struct MyState {
+    dropped_files: Vec<egui::DroppedFile>,
+    picked_path: Option<String>,
+}
+
+type DialogResponse = Option<rfd::FileHandle>;
 
 // This function runs every frame. Therefore, updating the viewport after drawing the gui.
 // With a resource which stores the dimensions of the panels, the update of the Viewport can
 // be done in another system.
-fn ui_example_system(
+fn ui_system(
+    mut directory: ResMut<Directory>,
     mut contexts: EguiContexts,
     mut camera: Single<&mut Camera, Without<EguiContext>>,
+    mut state: Local<MyState>,
+    mut file_dialog: Local<Option<Task<DialogResponse>>>,
     window: Single<&mut Window, With<PrimaryWindow>>,
+    mut file_list: ResMut<FileList>,
 ) -> Result {
+    // Poll the file dialog task FIRST, before any early returns
+    if let Some(file_response) = file_dialog
+        .as_mut()
+        .and_then(|task| block_on(poll_once(task)))
+    {
+        state.picked_path = file_response.map(|path| path.path().display().to_string());
+        *file_dialog = None;
+    }
+
     let ctx = contexts.ctx_mut()?;
 
     let mut left = egui::SidePanel::left("left_panel")
         .resizable(true)
         .show(ctx, |ui| {
             ui.label("Left resizeable panel");
+
+            // Add text input section
+            ui.horizontal(|ui| {
+                ui.label("Directory:");
+                ui.text_edit_singleline(&mut directory.0);
+            });
+            ui.label(format!("Browsing {}", directory.0));
+
+            ui.label("Drag-and-drop files onto the window!");
+
+             if ui.button("Open file…").clicked() {
+                *file_dialog = Some(
+                    AsyncComputeTaskPool::get().spawn(rfd::AsyncFileDialog::new().pick_file()),
+                );
+            }
+
+            ui.separator();
+
+            if ui.button("Up").clicked() {
+                if let Some(parent) = std::path::Path::new(&directory.0).parent() {
+                    directory.0 = parent.to_str().unwrap_or(&directory.0).to_string();
+                } else {
+                    warn!("Cannot navigate up from directory: {}", directory.0);
+                }
+            }
+           
+
+            if let Some(picked_path) = &state.picked_path {
+                ui.horizontal(|ui| {
+                    ui.label("Picked file:");
+                    ui.monospace(picked_path);
+                });
+            }
+
+            // Show dropped files (if any):
+            if !state.dropped_files.is_empty() {
+                ui.group(|ui| {
+                    ui.label("Dropped files:");
+
+                    for file in &state.dropped_files {
+                        let mut info = if let Some(path) = &file.path {
+                            path.display().to_string()
+                        } else if !file.name.is_empty() {
+                            file.name.clone()
+                        } else {
+                            "???".to_owned()
+                        };
+
+                        let mut additional_info = vec![];
+                        if !file.mime.is_empty() {
+                            additional_info.push(format!("type: {}", file.mime));
+                        }
+                        if let Some(bytes) = &file.bytes {
+                            additional_info.push(format!("{} bytes", bytes.len()));
+                        }
+                        if !additional_info.is_empty() {
+                            info += &format!(" ({})", additional_info.join(", "));
+                        }
+
+                        ui.label(info);
+                    }
+                });
+            }
+
+            if ui.button("Refresh").clicked() {
+                file_list.0 = read_directory_files(&directory.0);
+            }
+
+            ui.separator();
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                for filename in &file_list.0 {
+                    //    ui.label(entry);
+                    if ui.button(format!("{}", filename)).clicked() {
+                        let path = std::path::Path::new(&directory.0).join(filename);
+                        if path.is_dir() {
+                            directory.0 = path.to_str().unwrap_or(".").to_string();
+                        }
+                        // let md = std::fs::metadata(filename)
+                        // if std::fs::
+                        // // Handle the button click
+                        println!("You clicked: {} ", filename,);
+                        // For example, you could trigger opening, previewing, etc.
+                    }
+                }
+            });
+
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         })
         .response
         .rect
         .width(); // height is ignored, as the panel has a hight of 100% of the screen
+
+    // Collect dropped files:
+    // ctx.input(|i| {
+    //     if !i.raw.dropped_files.is_empty() {
+    //         state.dropped_files.clone_from(&i.raw.dropped_files);
+    //     }
+    // });
+
+    // ctx.input(|i| {
+    //     if i.raw.modifiers.ctrl {
+    //         info!("ctrl pressed");
+    //     }
+    // });
 
     let mut right = egui::SidePanel::right("right_panel")
         .resizable(true)
@@ -113,19 +287,28 @@ fn ui_example_system(
     Ok(())
 }
 
+#[derive(Resource)]
+struct FileList(Vec<String>);
+
 // Set up the example entities for the 3D scene. The only important thing is a camera which
 // renders directly to the window.
-fn setup_system(
+fn setup_scene(
+    mut directory: ResMut<Directory>,
     mut commands: Commands,
     mut egui_global_settings: ResMut<EguiGlobalSettings>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    println!("Dir: {}", directory.0);
+    let entries = read_directory_files(&directory.0);
+
+    commands.insert_resource(FileList(entries));
+
     // Disable the automatic creation of a primary context to set it up manually for the camera we need.
     egui_global_settings.auto_create_primary_context = false;
 
     // Add a light source
-  commands.spawn((
+    commands.spawn((
         DirectionalLight {
             illuminance: light_consts::lux::OVERCAST_DAY,
             shadows_enabled: true,
