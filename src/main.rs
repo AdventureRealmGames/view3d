@@ -18,6 +18,7 @@ fn main() {
     App::new()
         .insert_resource(ClearColor(Color::srgb(0.25, 0.25, 0.25)))
         .init_resource::<Directory>()
+        .init_resource::<OpenFile>()
         .add_plugins(DefaultPlugins)
         .add_plugins(EguiPlugin::default())
         .add_systems(Startup, setup_scene)
@@ -28,10 +29,17 @@ fn main() {
 
 #[derive(Resource)]
 struct Directory(String);
-
 impl Default for Directory {
     fn default() -> Self {
         Self(".".to_string())
+    }
+}
+
+#[derive(Resource)]
+struct OpenFile(String);
+impl Default for OpenFile {
+    fn default() -> Self {
+        Self("".to_string())
     }
 }
 
@@ -42,39 +50,39 @@ fn read_directory_files(path: &str) -> Vec<String> {
 
     match std::fs::read_dir(path) {
         Ok(entries) => {
-             let mut items: Vec<(bool, String)> = entries
-            .filter_map(|e| e.ok())
-            .filter(|e| {
-                // Allow directories
-                if e.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                    return true;
-                }
-                // Check if file has an accepted extension
-                e.path()
-                    .extension()
-                    .and_then(|ext| ext.to_str())
-                    .map(|ext| accepted_extensions.contains(&ext))
-                    .unwrap_or(false)
-            })            
-           // .map(|e| e.file_name().to_string_lossy().to_string())
-            //.collect();
-             .map(|e| {
-                let is_dir = e.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
-                (is_dir, e.file_name().to_string_lossy().to_string())
-            })
-            .collect();
-        
-          items.sort_by(|a, b| {
-            match (a.0, b.0) {
-                (true, false) => std::cmp::Ordering::Less,  // dirs before files
-                (false, true) => std::cmp::Ordering::Greater,
-                _ => a.1.to_lowercase().cmp(&b.1.to_lowercase()),
-            }
-        });
+            let mut items: Vec<(bool, String)> = entries
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    // Allow directories
+                    if e.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                        return true;
+                    }
+                    // Check if file has an accepted extension
+                    e.path()
+                        .extension()
+                        .and_then(|ext| ext.to_str())
+                        .map(|ext| accepted_extensions.contains(&ext))
+                        .unwrap_or(false)
+                })
+                // .map(|e| e.file_name().to_string_lossy().to_string())
+                //.collect();
+                .map(|e| {
+                    let is_dir = e.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
+                    (is_dir, e.file_name().to_string_lossy().to_string())
+                })
+                .collect();
 
-        // Drop the is_dir flag if you just want names
-        items.into_iter().map(|(_, name)| name).collect()
-        },
+            items.sort_by(|a, b| {
+                match (a.0, b.0) {
+                    (true, false) => std::cmp::Ordering::Less, // dirs before files
+                    (false, true) => std::cmp::Ordering::Greater,
+                    _ => a.1.to_lowercase().cmp(&b.1.to_lowercase()),
+                }
+            });
+
+            // Drop the is_dir flag if you just want names
+            items.into_iter().map(|(_, name)| name).collect()
+        }
         Err(e) => {
             error!("Failed to read directory '{}': {}", path, e);
             Vec::new()
@@ -101,6 +109,7 @@ type DialogResponse = Option<rfd::FileHandle>;
 // be done in another system.
 fn ui_system(
     mut directory: ResMut<Directory>,
+    mut open_file: ResMut<OpenFile>,
     mut contexts: EguiContexts,
     mut camera: Single<&mut Camera, Without<EguiContext>>,
     mut state: Local<MyState>,
@@ -129,6 +138,8 @@ fn ui_system(
                 ui.label("Directory:");
                 ui.text_edit_singleline(&mut directory.0);
             });
+            ui.label(format!("Open File {}", open_file.0));
+            ui.separator();
             ui.label(format!("Browsing {}", directory.0));
 
             ui.label("Drag-and-drop files onto the window!");
@@ -199,7 +210,9 @@ fn ui_system(
                     if ui.button(format!("{}", filename)).clicked() {
                         let path = std::path::Path::new(&directory.0).join(filename);
                         if path.is_dir() {
-                            directory.0 = path.to_str().unwrap_or(".").to_string();
+                            directory.0 = path.to_str().unwrap_or(&directory.0).to_string();
+                        } else {
+                            open_file.0 = path.to_str().unwrap_or("").to_string();
                         }
                         // let md = std::fs::metadata(filename)
                         // if std::fs::
