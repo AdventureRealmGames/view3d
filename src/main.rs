@@ -39,25 +39,42 @@ impl Default for Directory {
 fn read_directory_files(path: &str) -> Vec<String> {
     // Define accepted file extensions
     let accepted_extensions = ["glb", "gltf"];
-    
+
     match std::fs::read_dir(path) {
-        Ok(entries) => entries
+        Ok(entries) => {
+             let mut items: Vec<(bool, String)> = entries
             .filter_map(|e| e.ok())
             .filter(|e| {
                 // Allow directories
                 if e.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
                     return true;
                 }
-                
                 // Check if file has an accepted extension
                 e.path()
                     .extension()
                     .and_then(|ext| ext.to_str())
                     .map(|ext| accepted_extensions.contains(&ext))
                     .unwrap_or(false)
+            })            
+           // .map(|e| e.file_name().to_string_lossy().to_string())
+            //.collect();
+             .map(|e| {
+                let is_dir = e.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
+                (is_dir, e.file_name().to_string_lossy().to_string())
             })
-            .map(|e| e.file_name().to_string_lossy().to_string())
-            .collect(),
+            .collect();
+        
+          items.sort_by(|a, b| {
+            match (a.0, b.0) {
+                (true, false) => std::cmp::Ordering::Less,  // dirs before files
+                (false, true) => std::cmp::Ordering::Greater,
+                _ => a.1.to_lowercase().cmp(&b.1.to_lowercase()),
+            }
+        });
+
+        // Drop the is_dir flag if you just want names
+        items.into_iter().map(|(_, name)| name).collect()
+        },
         Err(e) => {
             error!("Failed to read directory '{}': {}", path, e);
             Vec::new()
@@ -116,7 +133,7 @@ fn ui_system(
 
             ui.label("Drag-and-drop files onto the window!");
 
-             if ui.button("Open file…").clicked() {
+            if ui.button("Open file…").clicked() {
                 *file_dialog = Some(
                     AsyncComputeTaskPool::get().spawn(rfd::AsyncFileDialog::new().pick_file()),
                 );
@@ -125,13 +142,14 @@ fn ui_system(
             ui.separator();
 
             if ui.button("Up").clicked() {
-                if let Some(parent) = std::path::Path::new(&directory.0).parent() {
-                    directory.0 = parent.to_str().unwrap_or(&directory.0).to_string();
+                let path = std::fs::canonicalize(&directory.0)
+                    .unwrap_or_else(|_| std::path::PathBuf::from(&directory.0));
+                if let Some(parent) = path.parent() {
+                    directory.0 = parent.to_string_lossy().to_string();
                 } else {
                     warn!("Cannot navigate up from directory: {}", directory.0);
                 }
             }
-           
 
             if let Some(picked_path) = &state.picked_path {
                 ui.horizontal(|ui| {
