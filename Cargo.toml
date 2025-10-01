@@ -5,7 +5,7 @@ edition = "2024"
 
 
 [dependencies]
-bevy = "0.16.1"
+bevy = { version = "0.16.1", features = ["experimental_pbr_pcss", "jpeg"] }
 bevy_render = "0.16.1"
 bevy_egui = "0.36"
 serde = { version = "1", features = ["derive"] }

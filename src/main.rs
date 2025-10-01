@@ -20,6 +20,11 @@ use view3d::list_dir;
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::srgb(0.25, 0.25, 0.25)))
+        .insert_resource(AmbientLight {
+            affects_lightmapped_meshes: false,
+            color: Color::WHITE,
+            brightness: 150.0,
+        })
         .init_resource::<Directory>()
         .init_resource::<OpenFile>()
         .init_resource::<CurrentGltfEntity>()
@@ -66,6 +71,7 @@ fn read_directory_files(path: &str) -> Vec<String> {
                 .filter_map(|e| e.ok())
                 .filter(|e| {
                     // Allow directories
+                    //TODO hide hidden folders
                     if e.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
                         return true;
                     }
@@ -92,7 +98,6 @@ fn read_directory_files(path: &str) -> Vec<String> {
                 }
             });
 
-            // Drop the is_dir flag if you just want names
             items.into_iter().map(|(_, name)| name).collect()
         }
         Err(e) => {
@@ -159,11 +164,11 @@ fn styled_button(ui: &mut egui::Ui, text: &str, dir: bool, is_selected: bool) ->
     let (bg_color, hover_color, text_color) = match (dir, is_selected) {
         // Selected file - blue theme
         (false, true) => (
-            egui::Color32::from_rgb(100, 120, 130),
+            egui::Color32::from_rgb(80, 80, 90),
             egui::Color32::from_rgb(70, 130, 21),
-            egui::Color32::BLACK,
+            egui::Color32::WHITE,
         ),
-        // Regular file - 
+        // Regular file -
         (false, false) => (
             egui::Color32::from_rgb(28, 29, 30),
             egui::Color32::from_rgb(20, 20, 20),
@@ -196,7 +201,7 @@ fn styled_button(ui: &mut egui::Ui, text: &str, dir: bool, is_selected: bool) ->
 
     // Custom hover effect using style
     if response.hovered() {
-       // ui.painter().rect_filled(response.rect, 4.0, hover_color);
+        // ui.painter().rect_filled(response.rect, 4.0, hover_color);
     }
 
     response
@@ -476,7 +481,9 @@ fn setup_scene(
             ..default()
         }
         .build(),
-    ));
+    ));    
+        
+    
     /*
         // Cube
         commands.spawn((
@@ -521,7 +528,7 @@ fn setup_scene(
     // 3D World camera positioned to view the scene
 
     commands.spawn((
-        //Camera3d::default(),
+        Camera3d::default(),
         Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
         PanOrbitCamera::default(),
     ));
