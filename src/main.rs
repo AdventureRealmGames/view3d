@@ -1,12 +1,19 @@
 use std::f32::consts::PI;
 
 use bevy::{
-    ecs::relationship::RelationshipSourceCollection, pbr::CascadeShadowConfigBuilder, prelude::*, render::camera::Viewport, tasks::{block_on, poll_once, AsyncComputeTaskPool, Task}, window::PrimaryWindow
+    ecs::relationship::RelationshipSourceCollection,
+    pbr::CascadeShadowConfigBuilder,
+    prelude::*,
+    render::camera::Viewport,
+    tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
+    window::PrimaryWindow,
 };
+
 use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
     PrimaryEguiContext, egui,
 };
+use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_render::view::RenderLayers;
 use view3d::list_dir;
 
@@ -20,6 +27,7 @@ fn main() {
             unapproved_path_mode: bevy::asset::UnapprovedPathMode::Allow,
             ..Default::default()
         }))
+        .add_plugins(PanOrbitCameraPlugin)
         .add_plugins(EguiPlugin::default())
         .add_systems(Startup, setup_scene)
         .add_systems(EguiPrimaryContextPass, ui_system)
@@ -116,7 +124,7 @@ fn check_open_file_changed(
         }
 
         let file_name = format!("{}#Scene0", open_file.0);
-        println!("Filename: {}",file_name);
+        println!("Filename: {}", file_name);
         let scene = asset_server.load(file_name);
         let scale = 1.0;
         let land_entity = commands
@@ -140,7 +148,7 @@ fn check_open_file_changed(
                 //collider
             ))
             .id();
-        
+
         // Store the new entity ID
         current_gltf.0 = Some(land_entity);
     }
@@ -391,7 +399,7 @@ fn setup_scene(
     // Add a light source
     commands.spawn((
         DirectionalLight {
-            illuminance: light_consts::lux::OVERCAST_DAY,
+            illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
             shadows_enabled: true,
             ..default()
         },
@@ -403,51 +411,53 @@ fn setup_scene(
         }
         .build(),
     ));
-/*
-    // Cube
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.8, 0.2, 0.2),
-            ..default()
-        })),
-        Transform::from_xyz(-2.0, 0.5, 0.0),
-    ));
+    /*
+        // Cube
+        commands.spawn((
+            Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::srgb(0.8, 0.2, 0.2),
+                ..default()
+            })),
+            Transform::from_xyz(-2.0, 0.5, 0.0),
+        ));
 
-    // Sphere
-    commands.spawn((
-        Mesh3d(meshes.add(Sphere::new(0.5))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.2, 0.8, 0.2),
-            ..default()
-        })),
-        Transform::from_xyz(0.0, 0.5, 0.0),
-    ));
+        // Sphere
+        commands.spawn((
+            Mesh3d(meshes.add(Sphere::new(0.5))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::srgb(0.2, 0.8, 0.2),
+                ..default()
+            })),
+            Transform::from_xyz(0.0, 0.5, 0.0),
+        ));
 
-    // Cylinder
-    commands.spawn((
-        Mesh3d(meshes.add(Cylinder::new(0.5, 1.0))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.2, 0.2, 0.8),
-            ..default()
-        })),
-        Transform::from_xyz(2.0, 0.5, 0.0),
-    ));
+        // Cylinder
+        commands.spawn((
+            Mesh3d(meshes.add(Cylinder::new(0.5, 1.0))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::srgb(0.2, 0.2, 0.8),
+                ..default()
+            })),
+            Transform::from_xyz(2.0, 0.5, 0.0),
+        ));
 
-    // Ground plane
-    commands.spawn((
-        Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.3, 0.5, 0.3),
-            ..default()
-        })),
-        Transform::from_xyz(0.0, 0.0, 0.0),
-    ));
-*/
+        // Ground plane
+        commands.spawn((
+            Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::srgb(0.3, 0.5, 0.3),
+                ..default()
+            })),
+            Transform::from_xyz(0.0, 0.0, 0.0),
+        ));
+    */
     // 3D World camera positioned to view the scene
+
     commands.spawn((
-        Camera3d::default(),
+        //Camera3d::default(),
         Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
+        PanOrbitCamera::default(),
     ));
 
     // Egui camera

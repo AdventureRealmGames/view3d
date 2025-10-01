@@ -26,6 +26,7 @@ tracing = { version = "0.1", features = [
     "release_max_level_warn",
 ] }
 rfd = "0.15.4"
+bevy_panorbit_camera ={ version = "0.28.0", features = ["bevy_egui"] }
 
 
 

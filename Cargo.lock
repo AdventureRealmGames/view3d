@@ -194,7 +194,7 @@ dependencies = [
  "objc2-foundation 0.3.1",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
  "x11rb",
 ]
 
@@ -1042,6 +1042,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8bb60c753b968a2de0fd279b76a3d19517695e771edb4c23575c7f92156315de"
 dependencies = [
  "glam",
+]
+
+[[package]]
+name = "bevy_panorbit_camera"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad26f43e37bec9849277dcb37e1404aeed2714f4834199e140150397bffb094c"
+dependencies = [
+ "bevy",
+ "bevy_egui",
 ]
 
 [[package]]
@@ -5238,6 +5248,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_egui",
+ "bevy_panorbit_camera",
  "bevy_render",
  "chrono",
  "directories",
