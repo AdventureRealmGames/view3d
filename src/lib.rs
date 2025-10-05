@@ -13,6 +13,7 @@ use std::fs::{self};
 pub struct FileEntry {
     pub name: String,
     pub last_modified: u64,
+    //pub size: u64
 }
 
 

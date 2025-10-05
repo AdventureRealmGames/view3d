@@ -11,10 +11,10 @@
 * Arrow keys for next/previous in list
 * Sort list by name or date
 
-  
+
 # DOING
 * Button styling
-
+* Sorting
 
 # DONE
 * Support GLTF

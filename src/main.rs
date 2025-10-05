@@ -15,7 +15,7 @@ use bevy_egui::{
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_render::view::RenderLayers;
-use view3d::list_dir;
+use view3d::{list_dir, FileEntry};
 
 fn main() {
     App::new()
@@ -28,6 +28,7 @@ fn main() {
         .init_resource::<Directory>()
         .init_resource::<OpenFile>()
         .init_resource::<CurrentGltfEntity>()
+        .insert_resource(SortMode::Name)
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             unapproved_path_mode: bevy::asset::UnapprovedPathMode::Allow,
             ..Default::default()
@@ -49,25 +50,33 @@ impl Default for Directory {
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Debug, Clone, PartialEq, Eq)]
 struct OpenFile(String);
+
 impl Default for OpenFile {
     fn default() -> Self {
         Self("".to_string())
     }
 }
 
+#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq)]
+enum SortMode {
+    Name,
+    Size,
+    Date,
+}
+
 #[derive(Resource, Default)]
 struct CurrentGltfEntity(Option<Entity>);
 
 /// Helper function to read directory contents with proper error handling
-fn read_directory_files(path: &str) -> Vec<String> {
+fn read_directory_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
     // Define accepted file extensions
     let accepted_extensions = ["glb", "gltf"];
 
     match std::fs::read_dir(path) {
         Ok(entries) => {
-            let mut items: Vec<(bool, String)> = entries
+            let mut items: Vec<(bool, FileEntry)> = entries
                 .filter_map(|e| e.ok())
                 .filter(|e| {
                     // Allow directories
@@ -86,19 +95,33 @@ fn read_directory_files(path: &str) -> Vec<String> {
                 //.collect();
                 .map(|e| {
                     let is_dir = e.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
-                    (is_dir, e.file_name().to_string_lossy().to_string())
+                    let fe = FileEntry {
+                        name:e.file_name().to_string_lossy().to_string(),
+                        last_modified: e.metadata().unwrap().modified().unwrap().elapsed().unwrap_or_default().as_secs()
+                    };
+                    (is_dir, fe)
                 })
                 .collect();
 
-            items.sort_by(|a, b| {
-                match (a.0, b.0) {
-                    (true, false) => std::cmp::Ordering::Less, // dirs before files
-                    (false, true) => std::cmp::Ordering::Greater,
-                    _ => a.1.to_lowercase().cmp(&b.1.to_lowercase()),
-                }
-            });
+            match sort_mode {
+                SortMode::Name => items.sort_by(|a, b| {
+                    match (a.0, b.0) {
+                        (true, false) => std::cmp::Ordering::Less, // dirs before files
+                        (false, true) => std::cmp::Ordering::Greater,
+                        _ => a.1.name.to_lowercase().cmp(&b.1.name.to_lowercase()),
+                    }
+                }),
+                SortMode::Size => todo!(),
+                 SortMode::Date => items.sort_by(|a, b| {
+                    match (a.0, b.0) {
+                        (true, false) => std::cmp::Ordering::Less, // dirs before files
+                        (false, true) => std::cmp::Ordering::Greater,
+                        _ => a.1.last_modified.cmp(&b.1.last_modified),
+                    }
+                }),
+            }
 
-            items.into_iter().map(|(_, name)| name).collect()
+            items.into_iter().map(|(_, file_entry)| file_entry).collect()
         }
         Err(e) => {
             error!("Failed to read directory '{}': {}", path, e);
@@ -107,9 +130,13 @@ fn read_directory_files(path: &str) -> Vec<String> {
     }
 }
 
-fn check_dir_changed(dir: Res<Directory>, mut file_list: ResMut<FileList>) {
-    if dir.is_changed() {
-        file_list.0 = read_directory_files(&dir.0);
+fn check_dir_changed(
+    dir: Res<Directory>,
+    mut file_list: ResMut<FileList>,
+    sort_mode: Res<SortMode>,
+) {
+    if dir.is_changed() || sort_mode.is_changed() {
+        file_list.0 = read_directory_files(&dir.0, *sort_mode);
     }
 }
 
@@ -227,6 +254,7 @@ fn ui_system(
     mut file_dialog: Local<Option<Task<DialogResponse>>>,
     window: Single<&mut Window, With<PrimaryWindow>>,
     mut file_list: ResMut<FileList>,
+    mut sort_mode: ResMut<SortMode>,
 ) -> Result {
     // Poll the file dialog task FIRST, before any early returns
     if let Some(file_response) = file_dialog
@@ -311,12 +339,24 @@ fn ui_system(
             }
 
             if ui.button("Refresh").clicked() {
-                file_list.0 = read_directory_files(&directory.0);
+                file_list.0 = read_directory_files(&directory.0, *sort_mode);
             }
 
             ui.separator();
+
+            ui.vertical(|ui| {
+                if ui.button("Name").clicked() {
+                    *sort_mode = SortMode::Name;
+                }
+                if ui.button("Size").clicked() {
+                    *sort_mode = SortMode::Size;
+                }
+                if ui.button("Date").clicked() {
+                    *sort_mode = SortMode::Date;
+                }
+            });
             egui::ScrollArea::vertical().show(ui, |ui| {
-                for filename in &file_list.0 {
+                for entry in &file_list.0 {
                     //    ui.label(entry);
                     // if ui.button(format!("{}", filename)).clicked() {
                     //     let path = std::path::Path::new(&directory.0).join(filename);
@@ -331,12 +371,12 @@ fn ui_system(
                     //     println!("You clicked: {} ", filename,);
                     //     // For example, you could trigger opening, previewing, etc.
                     // }
-                    let path = std::path::Path::new(&directory.0).join(filename);
+                    let path = std::path::Path::new(&directory.0).join(entry.name.clone());
                     let is_selected = open_file.0 == path.to_str().unwrap_or("").to_string();
 
                     let response = styled_button(
                         ui,
-                        format!("{}", filename).as_ref(),
+                        format!("{}", entry.name).as_ref(),
                         path.is_dir(),
                         is_selected,
                     );
@@ -448,7 +488,7 @@ fn ui_system(
 }
 
 #[derive(Resource)]
-struct FileList(Vec<String>);
+struct FileList(Vec<FileEntry>);
 
 // Set up the example entities for the 3D scene. The only important thing is a camera which
 // renders directly to the window.
@@ -458,9 +498,10 @@ fn setup_scene(
     mut egui_global_settings: ResMut<EguiGlobalSettings>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut sort_mode: ResMut<SortMode>,
 ) {
     println!("Dir: {}", directory.0);
-    let entries = read_directory_files(&directory.0);
+    let entries = read_directory_files(&directory.0, *sort_mode);
 
     commands.insert_resource(FileList(entries));
 
@@ -481,9 +522,8 @@ fn setup_scene(
             ..default()
         }
         .build(),
-    ));    
-        
-    
+    ));
+
     /*
         // Cube
         commands.spawn((
