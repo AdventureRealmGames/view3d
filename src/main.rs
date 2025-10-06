@@ -44,6 +44,7 @@ fn main() {
 
 #[derive(Resource)]
 struct Directory(String);
+
 impl Default for Directory {
     fn default() -> Self {
         Self(".".to_string())
@@ -344,7 +345,7 @@ fn ui_system(
 
             ui.separator();
 
-            ui.vertical(|ui| {
+            ui.horizontal(|ui| {
                 if ui.button("Name").clicked() {
                     *sort_mode = SortMode::Name;
                 }
@@ -424,7 +425,7 @@ fn ui_system(
     let mut top = egui::TopBottomPanel::top("top_panel")
         .resizable(true)
         .show(ctx, |ui| {
-            ui.label("Top resizeable panel");
+            ui.label(open_file.0.to_string());
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         })
         .response
