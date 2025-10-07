@@ -1,24 +1,20 @@
-
-use std::fs::ReadDir;
-use serde::{Deserialize, Serialize};
-use std::fs::{self};
-use std::f32::consts::PI;
 use bevy::{
     ecs::relationship::RelationshipSourceCollection,
     light::CascadeShadowConfigBuilder,
     prelude::*,
-
     tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
     window::PrimaryWindow,
 };
+use serde::{Deserialize, Serialize};
+use std::f32::consts::PI;
+use std::fs::ReadDir;
+use std::fs::{self};
 
 use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
     PrimaryEguiContext, egui,
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-
-
 
 #[derive(Resource)]
 pub struct Directory(pub String);
@@ -71,6 +67,11 @@ pub struct FileEntry {
     //pub size: u64
 }
 
+pub fn file_dir_path(dir: String, file: String) -> String {
+    let path = std::path::Path::new(&dir).join(file);
+    path.to_str().unwrap_or("").to_string()
+}
+
 pub fn check_dir_changed(
     dir: Res<Directory>,
     mut file_list: ResMut<FileList>,
@@ -85,7 +86,7 @@ pub fn check_dir_changed(
 //     match fs::rename(src, dest) {
 //         Ok(_) => Ok(()),
 //         Err(e) => bevy::ecs::error::BevyError(e.to_string())
-//     }   
+//     }
 // }
 
 pub fn read_directory_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
@@ -98,7 +99,7 @@ pub fn read_directory_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
                 .filter_map(|e| e.ok())
                 .filter(|e| {
                     if e.file_name().to_string_lossy().starts_with(".") {
-                        return false
+                        return false;
                     }
                     // Allow directories
                     //TODO hide hidden folders
@@ -117,8 +118,15 @@ pub fn read_directory_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
                 .map(|e| {
                     let is_dir = e.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
                     let fe = FileEntry {
-                        name:e.file_name().to_string_lossy().to_string(),
-                        last_modified: e.metadata().unwrap().modified().unwrap().elapsed().unwrap_or_default().as_secs()
+                        name: e.file_name().to_string_lossy().to_string(),
+                        last_modified: e
+                            .metadata()
+                            .unwrap()
+                            .modified()
+                            .unwrap()
+                            .elapsed()
+                            .unwrap_or_default()
+                            .as_secs(),
                     };
                     (is_dir, fe)
                 })
@@ -133,7 +141,7 @@ pub fn read_directory_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
                     }
                 }),
                 SortMode::Size => todo!(),
-                 SortMode::Date => items.sort_by(|a, b| {
+                SortMode::Date => items.sort_by(|a, b| {
                     match (a.0, b.0) {
                         (true, false) => std::cmp::Ordering::Less, // dirs before files
                         (false, true) => std::cmp::Ordering::Greater,
@@ -142,7 +150,10 @@ pub fn read_directory_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
                 }),
             }
 
-            items.into_iter().map(|(_, file_entry)| file_entry).collect()
+            items
+                .into_iter()
+                .map(|(_, file_entry)| file_entry)
+                .collect()
         }
         Err(e) => {
             error!("Failed to read directory '{}': {}", path, e);
@@ -150,7 +161,6 @@ pub fn read_directory_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
         }
     }
 }
-
 
 #[derive(Resource, Default)]
 pub struct CurrentGltfEntity(pub Option<Entity>);

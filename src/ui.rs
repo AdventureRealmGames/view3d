@@ -1,7 +1,7 @@
 use crate::{
     files::{
         CurrentGltfEntity, Directory, EditFileName, FileList, OpenFile, ShowEditFileName, SortMode,
-        check_dir_changed, check_open_file_changed, read_directory_files,
+        check_dir_changed, check_open_file_changed, file_dir_path, read_directory_files,
     },
     style::styled_button,
 };
@@ -20,7 +20,7 @@ use bevy_enhanced_input::condition::press::Press;
 use bevy_enhanced_input::{action::Action, actions, prelude::*};
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bytesize::ByteSize;
-use std::{f32::consts::PI, fs};
+use std::{f32::consts::PI, fs, path::Path};
 
 #[derive(Component)]
 pub struct UiKeyAction;
@@ -70,18 +70,44 @@ pub fn handle_file_nav_up(
     trigger: On<Fire<FileNavUp>>,
     mut file_list: ResMut<FileList>,
     mut open_file: ResMut<OpenFile>,
+    mut directory: ResMut<Directory>,
 ) {
-    println!("Up {:?}", open_file.0);
+    let path = Path::new(&open_file.0)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    println!("Up {:?}", path);
+    if let Some(mut index) = file_list.0.iter().position(|x| x.name == path) {
+        if index == 0 {
+            index = file_list.0.len() - 1;
+        } else {
+            index -= 1;
+        }
+        open_file.0 = file_dir_path(directory.0.clone(), file_list.0[index].name.clone());
+    }
 }
 
 pub fn handle_file_nav_down(
     trigger: On<Fire<FileNavDown>>,
     mut file_list: ResMut<FileList>,
     mut open_file: ResMut<OpenFile>,
+    mut directory: ResMut<Directory>,
 ) {
-    println!("Down {:?}", open_file.0);
+    let path = Path::new(&open_file.0)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    println!("Up {:?}", path);
+    if let Some(mut index) = file_list.0.iter().position(|x| x.name == path) {
+        index += 1;
+        if index + 1 > file_list.0.len() {
+            index = 0;
+        }
+        open_file.0 = file_dir_path(directory.0.clone(), file_list.0[index].name.clone());
+    }
 }
-
 // This function runs every frame. Therefore, updating the viewport after drawing the gui.
 // With a resource which stores the dimensions of the panels, the update of the Viewport can
 // be done in another system.
@@ -111,7 +137,7 @@ pub fn ui_system(
 
     let mut left = egui::SidePanel::left("left_panel")
         .resizable(true)
-        .show(ctx, |ui| {           
+        .show(ctx, |ui| {
             // text input section
             ui.horizontal(|ui| {
                 ui.label("Directory:");
