@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use bevy::{
     ecs::relationship::RelationshipSourceCollection,
     light::CascadeShadowConfigBuilder,
-    prelude::*,    
+    prelude::*,
     tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
     window::PrimaryWindow,
 };
@@ -14,9 +14,13 @@ use bevy_egui::{
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 
-
-
-pub fn styled_button(ui: &mut egui::Ui, text: &str, dir: bool, is_selected: bool) -> egui::Response {
+pub fn styled_button(
+    ui: &mut egui::Ui,
+    text: &str,
+    dir: bool,
+    is_selected: bool,
+    min_size: Option<egui::Vec2>,
+) -> egui::Response {
     // Define colors for different states
     let (bg_color, hover_color, text_color) = match (dir, is_selected) {
         // Selected file - blue theme
@@ -31,16 +35,16 @@ pub fn styled_button(ui: &mut egui::Ui, text: &str, dir: bool, is_selected: bool
             egui::Color32::from_rgb(20, 20, 20),
             egui::Color32::from_rgb(200, 202, 203),
         ),
-        // Directory - 
+        // Directory -
         (true, _) => (
-            egui::Color32::from_rgb(30, 32, 44),
+            egui::Color32::from_rgb(40, 42, 52),
             egui::Color32::from_rgb(25, 20, 10),
             egui::Color32::from_rgb(200, 202, 203),
         ),
     };
 
     // Create custom button style
-    let button = egui::Button::new(egui::RichText::new(format!("{} ", text)).color(text_color))
+    let mut button = egui::Button::new(egui::RichText::new(format!("{} ", text)).color(text_color))
         .fill(bg_color)
         .stroke(egui::Stroke::new(
             1.0,
@@ -50,10 +54,12 @@ pub fn styled_button(ui: &mut egui::Ui, text: &str, dir: bool, is_selected: bool
                 egui::Color32::from_rgb(24, 24, 24)
             },
         ))
-        .corner_radius(4.0)
-        //.min_size(egui::vec2(200.0, 30.0));
-        ;
+        .corner_radius(4.0);
 
+    //.min_size(egui::vec2(200.0, 30.0))
+    if let Some(min_size) = min_size {
+        button = button.min_size(min_size);
+    }
     // Apply hover color
     let response = ui.add(button);
 

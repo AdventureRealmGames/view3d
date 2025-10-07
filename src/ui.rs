@@ -67,7 +67,7 @@ pub type DialogResponse = Option<rfd::FileHandle>;
 
 // then check for keyboard nav stuff
 pub fn handle_file_nav_up(
-    trigger: On<Fire<FileNavUp>>,
+    _trigger: On<Fire<FileNavUp>>,
     mut file_list: ResMut<FileList>,
     mut open_file: ResMut<OpenFile>,
     mut directory: ResMut<Directory>,
@@ -77,7 +77,7 @@ pub fn handle_file_nav_up(
         .unwrap_or_default()
         .to_string_lossy()
         .to_string();
-    println!("Up {:?}", path);
+    
     if let Some(mut index) = file_list.0.iter().position(|x| x.name == path) {
         if index == 0 {
             index = file_list.0.len() - 1;
@@ -89,7 +89,7 @@ pub fn handle_file_nav_up(
 }
 
 pub fn handle_file_nav_down(
-    trigger: On<Fire<FileNavDown>>,
+    _trigger: On<Fire<FileNavDown>>,
     mut file_list: ResMut<FileList>,
     mut open_file: ResMut<OpenFile>,
     mut directory: ResMut<Directory>,
@@ -99,7 +99,7 @@ pub fn handle_file_nav_down(
         .unwrap_or_default()
         .to_string_lossy()
         .to_string();
-    println!("Up {:?}", path);
+   
     if let Some(mut index) = file_list.0.iter().position(|x| x.name == path) {
         index += 1;
         if index + 1 > file_list.0.len() {
@@ -108,6 +108,7 @@ pub fn handle_file_nav_down(
         open_file.0 = file_dir_path(directory.0.clone(), file_list.0[index].name.clone());
     }
 }
+
 // This function runs every frame. Therefore, updating the viewport after drawing the gui.
 // With a resource which stores the dimensions of the panels, the update of the Viewport can
 // be done in another system.
@@ -212,13 +213,13 @@ pub fn ui_system(
             ui.separator();
 
             ui.horizontal(|ui| {
-                if styled_button(ui, "Name", false, *sort_mode == SortMode::Name).clicked() {
+                if styled_button(ui, "Name", false, *sort_mode == SortMode::Name, None).clicked() {
                     *sort_mode = SortMode::Name;
                 }
-                if styled_button(ui, "Size", false, *sort_mode == SortMode::Size).clicked() {
+                if styled_button(ui, "Size", false, *sort_mode == SortMode::Size, None).clicked() {
                     *sort_mode = SortMode::Size;
                 }
-                if styled_button(ui, "Date", false, *sort_mode == SortMode::Date).clicked() {
+                if styled_button(ui, "Date", false, *sort_mode == SortMode::Date, None).clicked() {
                     *sort_mode = SortMode::Date;
                 }
                 // if ui.button("Name").clicked() {
@@ -255,6 +256,7 @@ pub fn ui_system(
                         format!("{}", entry.name).as_ref(),
                         path.is_dir(),
                         is_selected,
+                        Some(egui::vec2(200.0, 30.0))
                     );
 
                     // Handle click
@@ -369,7 +371,7 @@ pub fn ui_system(
     let mut bottom = egui::TopBottomPanel::bottom("bottom_panel")
         .resizable(true)
         .show(ctx, |ui| {
-            ui.label("Bottom resizeable panel");
+            ui.label("");
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         })
         .response
