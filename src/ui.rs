@@ -111,9 +111,7 @@ pub fn ui_system(
 
     let mut left = egui::SidePanel::left("left_panel")
         .resizable(true)
-        .show(ctx, |ui| {
-            ui.label("Left resizeable panel");
-
+        .show(ctx, |ui| {           
             // text input section
             ui.horizontal(|ui| {
                 ui.label("Directory:");
@@ -133,15 +131,20 @@ pub fn ui_system(
 
             ui.separator();
 
-            if ui.button("Up").clicked() {
-                let path = std::fs::canonicalize(&directory.0)
-                    .unwrap_or_else(|_| std::path::PathBuf::from(&directory.0));
-                if let Some(parent) = path.parent() {
-                    directory.0 = parent.to_string_lossy().to_string();
-                } else {
-                    warn!("Cannot navigate up from directory: {}", directory.0);
+            ui.horizontal(|ui| {
+                if ui.button("Up").clicked() {
+                    let path = std::fs::canonicalize(&directory.0)
+                        .unwrap_or_else(|_| std::path::PathBuf::from(&directory.0));
+                    if let Some(parent) = path.parent() {
+                        directory.0 = parent.to_string_lossy().to_string();
+                    } else {
+                        warn!("Cannot navigate up from directory: {}", directory.0);
+                    }
                 }
-            }
+                if ui.button("Refresh").clicked() {
+                    file_list.0 = read_directory_files(&directory.0, *sort_mode);
+                }
+            });
 
             if let Some(picked_path) = &state.picked_path {
                 ui.horizontal(|ui| {
@@ -180,20 +183,16 @@ pub fn ui_system(
                 });
             }
 
-            if ui.button("Refresh").clicked() {
-                file_list.0 = read_directory_files(&directory.0, *sort_mode);
-            }
-
             ui.separator();
 
             ui.horizontal(|ui| {
                 if styled_button(ui, "Name", false, *sort_mode == SortMode::Name).clicked() {
                     *sort_mode = SortMode::Name;
                 }
-                 if styled_button(ui, "Size", false, *sort_mode == SortMode::Size).clicked() {
+                if styled_button(ui, "Size", false, *sort_mode == SortMode::Size).clicked() {
                     *sort_mode = SortMode::Size;
                 }
-                 if styled_button(ui, "Date", false, *sort_mode == SortMode::Date).clicked() {
+                if styled_button(ui, "Date", false, *sort_mode == SortMode::Date).clicked() {
                     *sort_mode = SortMode::Date;
                 }
                 // if ui.button("Name").clicked() {

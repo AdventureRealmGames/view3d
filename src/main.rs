@@ -23,7 +23,7 @@ use view3d::{
 
 fn main() {
     App::new()
-        .insert_resource(ClearColor(Color::srgb(0.25, 0.25, 0.25)))
+        .insert_resource(ClearColor(Color::srgb(0.1, 0.1, 0.1)))
         .insert_resource(AmbientLight {
             affects_lightmapped_meshes: false,
             color: Color::WHITE,
