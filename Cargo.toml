@@ -5,9 +5,9 @@ edition = "2024"
 
 
 [dependencies]
-bevy = { version = "0.16.1", features = ["experimental_pbr_pcss", "jpeg"] }
-bevy_render = "0.16.1"
-bevy_egui = "0.36"
+bevy = { version = "0.17.2", features = ["experimental_pbr_pcss", "jpeg"] }
+bevy_render = "0.17.2"
+bevy_egui = "0.37"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.145"
 chrono = { version = "0.4.42", features= ["serde"] }
@@ -26,7 +26,7 @@ tracing = { version = "0.1", features = [
     "release_max_level_warn",
 ] }
 rfd = "0.15.4"
-bevy_panorbit_camera ={ version = "0.28.0", features = ["bevy_egui"] }
+bevy_panorbit_camera ={ version = "0.29.0", features = ["bevy_egui"] }
 
 
 
@@ -41,7 +41,7 @@ type_complexity = "allow"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
-opt-level = 1
+opt-level = 3
 
 # Enable a large amount of optimization in the dev profile for dependencies.
 [profile.dev.package."*"]

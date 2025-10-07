@@ -1,24 +1,32 @@
+pub mod files;
+pub mod style;
+
 use std::fs::ReadDir;
 use serde::{Deserialize, Serialize};
-
 use std::fs::{self};
+use std::f32::consts::PI;
+use bevy::{
+    ecs::relationship::RelationshipSourceCollection,
+    light::CascadeShadowConfigBuilder,
+    prelude::*,
+
+    tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
+    window::PrimaryWindow,
+};
+
+use bevy_egui::{
+    EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
+    PrimaryEguiContext, egui,
+};
+use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
+
+use crate::files::{Directory, FileEntry, FileList, SortMode};
 
 
 
 
-
-
-/// async from others
-#[derive(Serialize, Deserialize)]
-pub struct FileEntry {
-    pub name: String,
-    pub last_modified: u64,
-    //pub size: u64
-}
-
-
-
-
+// async reference
+/*
 pub async fn read_create_dir(path: &str) -> ReadDir {
     let dir;
     match fs::read_dir(path) {
@@ -109,3 +117,4 @@ pub async fn list_directories(path: &str) -> Result<Vec<String>, String> {
 
     Ok(directories)
 }
+*/
