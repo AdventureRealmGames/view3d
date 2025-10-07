@@ -31,9 +31,9 @@ pub fn styled_button(ui: &mut egui::Ui, text: &str, dir: bool, is_selected: bool
             egui::Color32::from_rgb(20, 20, 20),
             egui::Color32::from_rgb(200, 202, 203),
         ),
-        // Directory - yellow/gold theme
+        // Directory - 
         (true, _) => (
-            egui::Color32::from_rgb(50, 52, 60),
+            egui::Color32::from_rgb(20, 22, 24),
             egui::Color32::from_rgb(25, 20, 10),
             egui::Color32::from_rgb(200, 202, 203),
         ),

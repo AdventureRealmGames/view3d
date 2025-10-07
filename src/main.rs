@@ -1,16 +1,23 @@
-use view3d::{
-    files::{check_dir_changed, read_directory_files, Directory, FileList, OpenFile, SortMode},
-    style::styled_button,
-};
 use bevy::{
-    camera::{visibility::RenderLayers, Viewport}, light::CascadeShadowConfigBuilder, prelude::*, tasks::{block_on, poll_once, AsyncComputeTaskPool, Task}, window::PrimaryWindow
+    camera::{Viewport, visibility::RenderLayers},
+    light::CascadeShadowConfigBuilder,
+    prelude::*,
+    tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
+    window::PrimaryWindow,
 };
 use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
     PrimaryEguiContext, egui,
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-use std::f32::consts::PI;
+use std::{f32::consts::PI, fs};
+use view3d::{
+    files::{
+        Directory, EditFileName, FileList, OpenFile, ShowEditFileName, SortMode, check_dir_changed,
+        read_directory_files,
+    },
+    style::styled_button,
+};
 
 fn main() {
     App::new()
@@ -23,6 +30,8 @@ fn main() {
         .init_resource::<Directory>()
         .init_resource::<OpenFile>()
         .init_resource::<CurrentGltfEntity>()
+        .init_resource::<EditFileName>()
+        .init_resource::<ShowEditFileName>()
         .insert_resource(SortMode::Name)
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             unapproved_path_mode: bevy::asset::UnapprovedPathMode::Allow,
@@ -107,6 +116,8 @@ fn ui_system(
     window: Single<&mut Window, With<PrimaryWindow>>,
     mut file_list: ResMut<FileList>,
     mut sort_mode: ResMut<SortMode>,
+    mut show_edit_file_name: ResMut<ShowEditFileName>,
+    mut edit_file_name: ResMut<EditFileName>,
 ) -> Result {
     // Poll the file dialog task FIRST, before any early returns
     if let Some(file_response) = file_dialog
@@ -124,7 +135,7 @@ fn ui_system(
         .show(ctx, |ui| {
             ui.label("Left resizeable panel");
 
-            // Add text input section
+            // text input section
             ui.horizontal(|ui| {
                 ui.label("Directory:");
                 ui.text_edit_singleline(&mut directory.0);
@@ -276,7 +287,47 @@ fn ui_system(
     let mut top = egui::TopBottomPanel::top("top_panel")
         .resizable(true)
         .show(ctx, |ui| {
-            ui.label(open_file.0.to_string());
+            let path = open_file.0.clone(); // std::path::Path::new(&directory.0).join(entry.name.clone());
+            if path != "".to_string() {
+                ui.horizontal(|ui| {
+                    if show_edit_file_name.0 {
+                        ui.text_edit_singleline(&mut edit_file_name.0);
+                        if ui.button("Save").clicked() {
+                            let src = path.clone();
+                            let dest = edit_file_name.0.clone();
+                            match fs::rename(src, dest.clone()) {
+                                Ok(_) => {
+                                    open_file.0 = dest;
+                                    show_edit_file_name.0 = false;
+                                    file_list.0 = read_directory_files(&directory.0, *sort_mode);
+                                }
+                                Err(e) => {
+                                    //TODO handle this
+                                    println!("{:?}", e);
+                                }
+                            };
+                        }
+                        if ui.button("Cancel").clicked() {
+                            edit_file_name.0 = path;
+                            show_edit_file_name.0 = false;
+                        }
+                    } else {
+                        ui.label(open_file.0.to_string());
+                        if ui.button("Rename").clicked() {
+                            edit_file_name.0 = path;
+                            show_edit_file_name.0 = true;
+                        }
+                    }
+
+                    //let response = styled_button(ui, format!("Rename").as_ref(), false, is_selected);
+
+                    // Handle click
+                    // if response.clicked() {
+                    //     edit_file_name.0 = path;
+                    //     show_edit_file_name.0 = !show_edit_file_name.0;
+                    // }
+                });
+            }
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         })
         .response

@@ -48,6 +48,21 @@ pub enum SortMode {
 #[derive(Resource)]
 pub struct FileList(pub Vec<FileEntry>);
 
+#[derive(Resource)]
+pub struct EditFileName(pub String);
+impl Default for EditFileName {
+    fn default() -> Self {
+        Self("".to_string())
+    }
+}
+
+#[derive(Resource)]
+pub struct ShowEditFileName(pub bool);
+impl Default for ShowEditFileName {
+    fn default() -> Self {
+        Self(false)
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct FileEntry {
@@ -65,6 +80,13 @@ pub fn check_dir_changed(
         file_list.0 = read_directory_files(&dir.0, *sort_mode);
     }
 }
+
+// pub fn move_file(src: String, dest: String) -> Result {
+//     match fs::rename(src, dest) {
+//         Ok(_) => Ok(()),
+//         Err(e) => bevy::ecs::error::BevyError(e.to_string())
+//     }   
+// }
 
 pub fn read_directory_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
     // Define accepted file extensions
