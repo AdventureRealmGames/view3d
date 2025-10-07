@@ -33,7 +33,7 @@ pub fn styled_button(ui: &mut egui::Ui, text: &str, dir: bool, is_selected: bool
         ),
         // Directory - 
         (true, _) => (
-            egui::Color32::from_rgb(20, 22, 24),
+            egui::Color32::from_rgb(30, 32, 44),
             egui::Color32::from_rgb(25, 20, 10),
             egui::Color32::from_rgb(200, 202, 203),
         ),
@@ -47,7 +47,7 @@ pub fn styled_button(ui: &mut egui::Ui, text: &str, dir: bool, is_selected: bool
             if is_selected {
                 egui::Color32::from_rgba_premultiplied(120, 120, 120, 64)
             } else {
-                egui::Color32::from_gray(180)
+                egui::Color32::from_rgb(24, 24, 24)
             },
         ))
         .rounding(4.0)

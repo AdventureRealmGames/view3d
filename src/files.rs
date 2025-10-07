@@ -97,6 +97,9 @@ pub fn read_directory_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
             let mut items: Vec<(bool, FileEntry)> = entries
                 .filter_map(|e| e.ok())
                 .filter(|e| {
+                    if e.file_name().to_string_lossy().starts_with(".") {
+                        return false
+                    }
                     // Allow directories
                     //TODO hide hidden folders
                     if e.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {

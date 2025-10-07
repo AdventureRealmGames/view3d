@@ -10,6 +10,7 @@ use bevy_egui::{
     PrimaryEguiContext, egui,
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
+use bytesize::ByteSize;
 use std::{f32::consts::PI, fs};
 use view3d::{
     files::{
@@ -277,7 +278,27 @@ fn ui_system(
     let mut right = egui::SidePanel::right("right_panel")
         .resizable(true)
         .show(ctx, |ui| {
-            ui.label("Right resizeable panel");
+            if open_file.0 != "".to_string() {
+                ui.label("Info");
+                match std::fs::metadata(open_file.0.clone()) {
+                    Ok(md) => {
+                        let m = format!("Size {:?} bytes", ByteSize(md.len()));
+                        ui.label(m);
+                    }
+                    Err(_) => {}
+                }
+
+                if ui.button("Delete File").clicked() {
+                    match fs::remove_file(open_file.0.clone()) {
+                        Ok(_) => {
+                            println!("Successfully deleted {:?}",open_file.0);
+                            open_file.0 = "".to_string();
+                            file_list.0 = read_directory_files(&directory.0, *sort_mode);
+                        },
+                        Err(e) => println!("Error deleting {:?}\n{:?}",open_file.0,e)
+                    }
+                }
+            }
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         })
         .response
