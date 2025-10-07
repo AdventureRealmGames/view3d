@@ -50,8 +50,9 @@ pub fn styled_button(ui: &mut egui::Ui, text: &str, dir: bool, is_selected: bool
                 egui::Color32::from_rgb(24, 24, 24)
             },
         ))
-        .rounding(4.0)
-        .min_size(egui::vec2(200.0, 30.0));
+        .corner_radius(4.0)
+        //.min_size(egui::vec2(200.0, 30.0));
+        ;
 
     // Apply hover color
     let response = ui.add(button);

@@ -151,3 +151,43 @@ pub fn read_directory_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
     }
 }
 
+
+#[derive(Resource, Default)]
+pub struct CurrentGltfEntity(pub Option<Entity>);
+
+pub fn check_open_file_changed(
+    mut commands: Commands,
+    open_file: Res<OpenFile>,
+    asset_server: Res<AssetServer>,
+    //mut meshes: ResMut<Assets<Mesh>>,
+    //mut materials: ResMut<Assets<StandardMaterial>>,
+    mut current_gltf: ResMut<CurrentGltfEntity>,
+) {
+    if open_file.is_changed() {
+        // Despawn the old GLTF entity if it exists
+        if let Some(old_entity) = current_gltf.0 {
+            println!("Despawning old GLTF entity: {:?}", old_entity);
+            commands.entity(old_entity).despawn();
+        }
+
+        let file_name = format!("{}#Scene0", open_file.0);
+        println!("Filename: {}", file_name);
+        let scene = asset_server.load(file_name);
+        let scale = 1.0;
+        let land_entity = commands
+            .spawn((
+                SceneRoot(scene.clone()), //#Scene0
+                Visibility::Visible,
+                //transform: Transform::from_scale(Vec3::new(0.1,0.1,0.1)),
+                Transform {
+                    translation: Vec3::new(0.0, 0.0, 0.0),
+                    rotation: Default::default(),
+                    scale: Vec3::new(scale, scale, scale),
+                },
+            ))
+            .id();
+
+        // Store the new entity ID
+        current_gltf.0 = Some(land_entity);
+    }
+}

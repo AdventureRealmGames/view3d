@@ -1,5 +1,6 @@
 pub mod files;
 pub mod style;
+pub mod ui;
 
 use std::fs::ReadDir;
 use serde::{Deserialize, Serialize};
