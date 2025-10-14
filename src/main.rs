@@ -25,9 +25,9 @@ fn main() {
     App::new()
         .insert_resource(ClearColor(Color::srgb(0.1, 0.1, 0.1)))
         .insert_resource(AmbientLight {
-            affects_lightmapped_meshes: false,
+            affects_lightmapped_meshes: true,
             color: Color::WHITE,
-            brightness: 150.0,
+            brightness: 260.0,
         })
         .init_resource::<Directory>()
         .init_resource::<OpenFile>()
@@ -78,7 +78,8 @@ fn setup_scene(
     // Add a light source
     commands.spawn((
         DirectionalLight {
-            illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
+            //illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
+            illuminance: 4000.,
             shadows_enabled: true,
             ..default()
         },
