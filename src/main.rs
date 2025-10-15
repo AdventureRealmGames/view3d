@@ -27,7 +27,7 @@ fn main() {
         .insert_resource(AmbientLight {
             affects_lightmapped_meshes: true,
             color: Color::WHITE,
-            brightness: 260.0,
+            brightness: 300.0,
         })
         .init_resource::<Directory>()
         .init_resource::<OpenFile>()
@@ -79,8 +79,8 @@ fn setup_scene(
     commands.spawn((
         DirectionalLight {
             //illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
-            illuminance: 4000.,
-            shadows_enabled: true,
+            illuminance: 10000.,
+            shadows_enabled: false,
             ..default()
         },
         Transform::from_rotation(Quat::from_euler(EulerRot::ZYX, 0.0, PI / 2., -PI / 4.)),
