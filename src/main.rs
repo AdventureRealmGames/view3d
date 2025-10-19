@@ -1,9 +1,5 @@
 use bevy::{
-    camera::{Exposure, Viewport, visibility::RenderLayers},
-    light::CascadeShadowConfigBuilder,
-    prelude::*,
-    tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
-    window::PrimaryWindow,
+    camera::{visibility::RenderLayers, Exposure, Viewport}, core_pipeline::tonemapping::Tonemapping, light::CascadeShadowConfigBuilder, prelude::*, tasks::{block_on, poll_once, AsyncComputeTaskPool, Task}, window::PrimaryWindow
 };
 use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
@@ -77,6 +73,7 @@ fn setup_scene(
     egui_global_settings.auto_create_primary_context = false;
 
     // Add a light source
+    
     commands.spawn((
         DirectionalLight {
             //illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
@@ -167,6 +164,7 @@ fn setup_scene(
         PanOrbitCamera::default(),
         Camera3d { ..default() },
         Exposure::BLENDER,
+        Tonemapping::BlenderFilmic,
     ));
 
     // Egui camera
