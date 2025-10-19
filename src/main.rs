@@ -1,5 +1,5 @@
 use bevy::{
-    camera::{Viewport, visibility::RenderLayers},
+    camera::{Exposure, Viewport, visibility::RenderLayers},
     light::CascadeShadowConfigBuilder,
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
@@ -9,16 +9,17 @@ use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
     PrimaryEguiContext, egui,
 };
-use bevy_enhanced_input::{prelude::InputContextAppExt, EnhancedInputPlugin};
+use bevy_enhanced_input::{EnhancedInputPlugin, prelude::InputContextAppExt};
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bytesize::ByteSize;
 use std::{f32::consts::PI, fs};
 use view3d::{
     files::{
-        check_dir_changed, check_open_file_changed, read_directory_files, CurrentGltfEntity, Directory, EditFileName, FileList, OpenFile, ShowEditFileName, SortMode
+        CurrentGltfEntity, Directory, EditFileName, FileList, OpenFile, ShowEditFileName, SortMode,
+        check_dir_changed, check_open_file_changed, read_directory_files,
     },
     style::styled_button,
-    ui::{handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system, UiKeyAction},
+    ui::{UiKeyAction, handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system},
 };
 
 fn main() {
@@ -27,7 +28,7 @@ fn main() {
         .insert_resource(AmbientLight {
             affects_lightmapped_meshes: true,
             color: Color::WHITE,
-            brightness: 300.0,
+            brightness: 0.0,
         })
         .init_resource::<Directory>()
         .init_resource::<OpenFile>()
@@ -79,8 +80,9 @@ fn setup_scene(
     commands.spawn((
         DirectionalLight {
             //illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
-            illuminance: 10000.,
-            shadows_enabled: false,
+            //illuminance: light_consts::lux::DIRECT_SUNLIGHT,
+            illuminance: 20_000.,
+            shadows_enabled: true,
             ..default()
         },
         Transform::from_rotation(Quat::from_euler(EulerRot::ZYX, 0.0, PI / 2., -PI / 4.)),
@@ -90,6 +92,30 @@ fn setup_scene(
             ..default()
         }
         .build(),
+    ));
+
+    commands.spawn((
+        PointLight {
+            intensity: 1_000_000., // lumens
+            color: Color::WHITE,
+            shadows_enabled: false,
+            radius: 0.,
+            range: 1000.,
+            ..default()
+        },
+        Transform::from_xyz(-10., 10., 10.),
+    ));
+
+     commands.spawn((
+        PointLight {
+            intensity: 600_000., // lumens
+            color: Color::WHITE,
+            shadows_enabled: false,
+            radius: 0.,
+            range: 2000.,
+            ..default()
+        },
+        Transform::from_xyz(-4., -10., -10.),
     ));
 
     /*
@@ -136,9 +162,11 @@ fn setup_scene(
     // 3D World camera positioned to view the scene
 
     commands.spawn((
-        Camera3d::default(),
+        // Camera3d::default(),
         Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
         PanOrbitCamera::default(),
+        Camera3d { ..default() },
+        Exposure::BLENDER,
     ));
 
     // Egui camera
