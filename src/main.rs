@@ -26,6 +26,7 @@ fn main() {
             color: Color::WHITE,
             brightness: 0.0,
         })
+        
         .init_resource::<Directory>()
         .init_resource::<OpenFile>()
         .init_resource::<CurrentGltfEntity>()
@@ -63,7 +64,11 @@ fn setup_scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut sort_mode: ResMut<SortMode>,
+    asset_server: Res<AssetServer>,
+    //mut image_assets: &mut Assets<Image>,
+    mut image_assets: ResMut<Assets<Image>>
 ) {
+
     println!("Dir: {}", directory.0);
     let entries = read_directory_files(&directory.0, *sort_mode);
 
@@ -72,13 +77,13 @@ fn setup_scene(
     // Disable the automatic creation of a primary context to set it up manually for the camera we need.
     egui_global_settings.auto_create_primary_context = false;
 
-    // Add a light source
+    
     
     commands.spawn((
         DirectionalLight {
             //illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
             //illuminance: light_consts::lux::DIRECT_SUNLIGHT,
-            illuminance: 20_000.,
+            illuminance: 10_000.,
             shadows_enabled: true,
             ..default()
         },
@@ -90,10 +95,10 @@ fn setup_scene(
         }
         .build(),
     ));
-
+/*
     commands.spawn((
         PointLight {
-            intensity: 1_000_000., // lumens
+            intensity: 1_500_000., // lumens
             color: Color::WHITE,
             shadows_enabled: false,
             radius: 0.,
@@ -105,7 +110,7 @@ fn setup_scene(
 
      commands.spawn((
         PointLight {
-            intensity: 600_000., // lumens
+            intensity: 1_000_000., // lumens
             color: Color::WHITE,
             shadows_enabled: false,
             radius: 0.,
@@ -114,7 +119,7 @@ fn setup_scene(
         },
         Transform::from_xyz(-4., -10., -10.),
     ));
-
+*/
     /*
         // Cube
         commands.spawn((
@@ -163,8 +168,21 @@ fn setup_scene(
         Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
         PanOrbitCamera::default(),
         Camera3d { ..default() },
-        Exposure::BLENDER,
-        Tonemapping::BlenderFilmic,
+        EnvironmentMapLight {
+            intensity: 300.0,
+           ..EnvironmentMapLight::solid_color(&mut image_assets, Color::WHITE)
+           
+            
+        },
+        // EnvironmentMapLight {
+        //         affects_lightmapped_mesh_diffuse: true,
+        //         diffuse_map: asset_server.load("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
+        //         specular_map: asset_server.load("environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
+        //         intensity: 0.0,
+        //         rotation: Default::default(),
+        //     },
+        //Exposure::SUNLIGHT,
+        Tonemapping::ReinhardLuminance,
     ));
 
     // Egui camera
@@ -179,4 +197,88 @@ fn setup_scene(
             ..default()
         },
     ));
+}
+
+
+
+
+
+use bevy::{
+    asset::RenderAssetUsages,
+    prelude::*,
+    render::render_resource::{
+        Extent3d, TextureDimension, TextureFormat, TextureViewDescriptor, TextureViewDimension,
+    },
+};
+
+// pub(super) fn plugin(app: &mut App) {
+//     let _ = app;
+// }
+
+pub(crate) trait SolidColorEnvironmentMapLight {
+    fn solid_color(assets: &mut Assets<Image>, color: Color) -> Self;
+}
+impl SolidColorEnvironmentMapLight for EnvironmentMapLight {
+    /// An environment map with a uniform color, useful for uniform ambient lighting.
+    fn solid_color(assets: &mut Assets<Image>, color: Color) -> Self {
+        hemispherical_gradient(assets, color, color, color)
+    }
+}
+
+/// An environment map with a hemispherical gradient, fading between the sky and ground colors
+/// at the horizon. Useful as a very simple 'sky'.
+fn hemispherical_gradient(
+    assets: &mut Assets<Image>,
+    top_color: Color,
+    mid_color: Color,
+    bottom_color: Color,
+) -> EnvironmentMapLight {
+    let handle = assets.add(hemispherical_gradient_cubemap(
+        top_color,
+        mid_color,
+        bottom_color,
+    ));
+
+    EnvironmentMapLight {
+        diffuse_map: handle.clone(),
+        specular_map: handle,
+        ..Default::default()
+    }
+}
+
+fn hemispherical_gradient_cubemap(
+    top_color: Color,
+    mid_color: Color,
+    bottom_color: Color,
+) -> Image {
+    let top_color: Srgba = top_color.into();
+    let mid_color: Srgba = mid_color.into();
+    let bottom_color: Srgba = bottom_color.into();
+    Image {
+        texture_view_descriptor: Some(TextureViewDescriptor {
+            dimension: Some(TextureViewDimension::Cube),
+            ..Default::default()
+        }),
+        ..Image::new(
+            Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 6,
+            },
+            TextureDimension::D2,
+            [
+                mid_color,
+                mid_color,
+                top_color,
+                bottom_color,
+                mid_color,
+                mid_color,
+            ]
+            .into_iter()
+            .flat_map(Srgba::to_u8_array)
+            .collect(),
+            TextureFormat::Rgba8UnormSrgb,
+            RenderAssetUsages::RENDER_WORLD,
+        )
+    }
 }
