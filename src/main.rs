@@ -1,5 +1,5 @@
 use bevy::{
-    camera::{visibility::RenderLayers, Exposure, Viewport}, core_pipeline::tonemapping::Tonemapping, light::CascadeShadowConfigBuilder, prelude::*, tasks::{block_on, poll_once, AsyncComputeTaskPool, Task}, window::PrimaryWindow
+    camera::{visibility::RenderLayers, Exposure, Viewport}, core_pipeline::tonemapping::Tonemapping, light::CascadeShadowConfigBuilder, pbr::AtmospherePlugin, prelude::*, tasks::{block_on, poll_once, AsyncComputeTaskPool, Task}, window::PrimaryWindow
 };
 use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
@@ -17,6 +17,8 @@ use view3d::{
     style::styled_button,
     ui::{UiKeyAction, handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system},
 };
+
+use view3d::envlight::SolidColorEnvironmentMapLight;
 
 fn main() {
     App::new()
@@ -41,6 +43,7 @@ fn main() {
         .add_plugins(PanOrbitCameraPlugin)
         .add_plugins(EguiPlugin::default())
         .add_plugins(EnhancedInputPlugin)
+        //.add_plugins(AtmospherePlugin)
         // systems
         .add_systems(Startup, setup_scene)
         .add_systems(Startup, setup_ui)
@@ -83,7 +86,7 @@ fn setup_scene(
         DirectionalLight {
             //illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
             //illuminance: light_consts::lux::DIRECT_SUNLIGHT,
-            illuminance: 10_000.,
+            illuminance: 6_000.,
             shadows_enabled: true,
             ..default()
         },
@@ -169,18 +172,11 @@ fn setup_scene(
         PanOrbitCamera::default(),
         Camera3d { ..default() },
         EnvironmentMapLight {
-            intensity: 300.0,
+            intensity: 400.0,
            ..EnvironmentMapLight::solid_color(&mut image_assets, Color::WHITE)
            
             
         },
-        // EnvironmentMapLight {
-        //         affects_lightmapped_mesh_diffuse: true,
-        //         diffuse_map: asset_server.load("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
-        //         specular_map: asset_server.load("environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
-        //         intensity: 0.0,
-        //         rotation: Default::default(),
-        //     },
         //Exposure::SUNLIGHT,
         Tonemapping::ReinhardLuminance,
     ));
@@ -214,71 +210,3 @@ use bevy::{
 // pub(super) fn plugin(app: &mut App) {
 //     let _ = app;
 // }
-
-pub(crate) trait SolidColorEnvironmentMapLight {
-    fn solid_color(assets: &mut Assets<Image>, color: Color) -> Self;
-}
-impl SolidColorEnvironmentMapLight for EnvironmentMapLight {
-    /// An environment map with a uniform color, useful for uniform ambient lighting.
-    fn solid_color(assets: &mut Assets<Image>, color: Color) -> Self {
-        hemispherical_gradient(assets, color, color, color)
-    }
-}
-
-/// An environment map with a hemispherical gradient, fading between the sky and ground colors
-/// at the horizon. Useful as a very simple 'sky'.
-fn hemispherical_gradient(
-    assets: &mut Assets<Image>,
-    top_color: Color,
-    mid_color: Color,
-    bottom_color: Color,
-) -> EnvironmentMapLight {
-    let handle = assets.add(hemispherical_gradient_cubemap(
-        top_color,
-        mid_color,
-        bottom_color,
-    ));
-
-    EnvironmentMapLight {
-        diffuse_map: handle.clone(),
-        specular_map: handle,
-        ..Default::default()
-    }
-}
-
-fn hemispherical_gradient_cubemap(
-    top_color: Color,
-    mid_color: Color,
-    bottom_color: Color,
-) -> Image {
-    let top_color: Srgba = top_color.into();
-    let mid_color: Srgba = mid_color.into();
-    let bottom_color: Srgba = bottom_color.into();
-    Image {
-        texture_view_descriptor: Some(TextureViewDescriptor {
-            dimension: Some(TextureViewDimension::Cube),
-            ..Default::default()
-        }),
-        ..Image::new(
-            Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 6,
-            },
-            TextureDimension::D2,
-            [
-                mid_color,
-                mid_color,
-                top_color,
-                bottom_color,
-                mid_color,
-                mid_color,
-            ]
-            .into_iter()
-            .flat_map(Srgba::to_u8_array)
-            .collect(),
-            TextureFormat::Rgba8UnormSrgb,
-            RenderAssetUsages::RENDER_WORLD,
-        )
-    }
-}

@@ -12,7 +12,7 @@ pub(super) fn plugin(app: &mut App) {
     let _ = app;
 }
 
-pub(crate) trait SolidColorEnvironmentMapLight {
+pub trait SolidColorEnvironmentMapLight {
     fn solid_color(assets: &mut Assets<Image>, color: Color) -> Self;
 }
 impl SolidColorEnvironmentMapLight for EnvironmentMapLight {
