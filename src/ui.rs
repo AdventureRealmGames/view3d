@@ -1,7 +1,6 @@
 use crate::{
     files::{
-        CurrentGltfEntity, Directory, EditFileName, FileList, OpenFile, ShowEditFileName, SortMode,
-        check_dir_changed, check_open_file_changed, file_dir_path, read_directory_files,
+        check_dir_changed, check_open_file_changed, file_dir_path, read_directory_files, CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile, ShowEditFileName, SortMode
     },
     style::styled_button,
 };
@@ -124,6 +123,7 @@ pub fn ui_system(
     mut sort_mode: ResMut<SortMode>,
     mut show_edit_file_name: ResMut<ShowEditFileName>,
     mut edit_file_name: ResMut<EditFileName>,
+    mut model_info: ResMut<ModelInfo>,
 ) -> Result {
     // Poll the file dialog task FIRST, before any early returns
     if let Some(file_response) = file_dialog
@@ -312,6 +312,9 @@ pub fn ui_system(
                         Err(e) => println!("Error deleting {:?}\n{:?}", open_file.0, e),
                     }
                 }
+                ui.separator();
+                ui.label(format!("Polygons: {:} ", model_info.polygon_count));
+                ui.label(format!("Vertices: {:} ", model_info.vertex_count));
             }
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         })

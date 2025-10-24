@@ -2,6 +2,7 @@ use bevy::{
     ecs::relationship::RelationshipSourceCollection,
     light::CascadeShadowConfigBuilder,
     prelude::*,
+    scene::SceneInstanceReady,
     tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
     window::PrimaryWindow,
 };
@@ -185,7 +186,7 @@ pub fn check_open_file_changed(
         println!("Filename: {}", file_name);
         let scene = asset_server.load(file_name);
         let scale = 1.0;
-        let land_entity = commands
+        let new_entity = commands
             .spawn((
                 SceneRoot(scene.clone()), //#Scene0
                 Visibility::Visible,
@@ -197,13 +198,10 @@ pub fn check_open_file_changed(
                 },
             ))
             .id();
-
         // Store the new entity ID
-        current_gltf.0 = Some(land_entity);
+        current_gltf.0 = Some(new_entity);
     }
 }
-
-
 
 pub fn home_dir() -> String {
     //let path = "";
@@ -228,5 +226,36 @@ pub fn home_dir() -> String {
 
     //let p = home_dir.join(path);
     home_dir.to_string_lossy().to_string()
-    
+}
+
+pub fn check_model_loaded(
+    trigger: On<SceneInstanceReady>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut scene_assets: ResMut<Assets<Scene>>,
+    asset_server: Res<AssetServer>,
+    mut model_info: ResMut<ModelInfo>,
+) {
+    let entity = trigger.event().entity;
+
+    println!("Model loaded!");
+
+    let mut vertex_count: usize = 0;
+    let mut polygon_count: usize = 0;
+    for (mesh_handle, mesh) in meshes.iter() {
+        vertex_count += mesh.count_vertices();
+        let index_count = mesh.indices().unwrap().len();
+        polygon_count += index_count / 3;
+        println!(
+            "Mesh {:?}: {} vertices, {} polygons",
+            mesh_handle, vertex_count, polygon_count
+        );
+    }
+    model_info.vertex_count = vertex_count;
+    model_info.polygon_count = polygon_count;
+}
+
+#[derive(Resource, Default)]
+pub struct ModelInfo {
+    pub polygon_count: usize,
+    pub vertex_count: usize,
 }

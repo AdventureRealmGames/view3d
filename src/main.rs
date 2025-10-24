@@ -11,7 +11,7 @@ use bytesize::ByteSize;
 use std::{f32::consts::PI, fs};
 use view3d::{
     files::{
-        check_dir_changed, check_open_file_changed, home_dir, read_directory_files, CurrentGltfEntity, Directory, EditFileName, FileList, OpenFile, ShowEditFileName, SortMode
+        check_dir_changed, check_model_loaded, check_open_file_changed, home_dir, read_directory_files, CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile, ShowEditFileName, SortMode
     },
     style::styled_button,
     ui::{handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system, UiKeyAction},
@@ -29,6 +29,7 @@ fn main() {
         })
         
         .init_resource::<Directory>()
+        .init_resource::<ModelInfo>()
         .init_resource::<OpenFile>()
         .init_resource::<CurrentGltfEntity>()
         .init_resource::<EditFileName>()
@@ -52,6 +53,7 @@ fn main() {
         //observers
         .add_observer(handle_file_nav_up)
         .add_observer(handle_file_nav_down)
+        .add_observer(check_model_loaded)
         //input
         .add_input_context::<UiKeyAction>()
         .run();
@@ -78,7 +80,6 @@ fn setup_scene(
 
     // Disable the automatic creation of a primary context to set it up manually for the camera we need.
     egui_global_settings.auto_create_primary_context = false;
-
     
     
     commands.spawn((
