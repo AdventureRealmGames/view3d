@@ -11,11 +11,10 @@ use bytesize::ByteSize;
 use std::{f32::consts::PI, fs};
 use view3d::{
     files::{
-        CurrentGltfEntity, Directory, EditFileName, FileList, OpenFile, ShowEditFileName, SortMode,
-        check_dir_changed, check_open_file_changed, read_directory_files,
+        check_dir_changed, check_open_file_changed, home_dir, read_directory_files, CurrentGltfEntity, Directory, EditFileName, FileList, OpenFile, ShowEditFileName, SortMode
     },
     style::styled_button,
-    ui::{UiKeyAction, handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system},
+    ui::{handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system, UiKeyAction},
 };
 
 use view3d::envlight::SolidColorEnvironmentMapLight;
@@ -43,7 +42,7 @@ fn main() {
         .add_plugins(PanOrbitCameraPlugin)
         .add_plugins(EguiPlugin::default())
         .add_plugins(EnhancedInputPlugin)
-        //.add_plugins(AtmospherePlugin)
+   
         // systems
         .add_systems(Startup, setup_scene)
         .add_systems(Startup, setup_ui)
@@ -71,8 +70,8 @@ fn setup_scene(
     //mut image_assets: &mut Assets<Image>,
     mut image_assets: ResMut<Assets<Image>>
 ) {
-
     println!("Dir: {}", directory.0);
+    directory.0 = home_dir();
     let entries = read_directory_files(&directory.0, *sort_mode);
 
     commands.insert_resource(FileList(entries));
@@ -98,7 +97,7 @@ fn setup_scene(
         }
         .build(),
     ));
-/*
+
     commands.spawn((
         PointLight {
             intensity: 1_500_000., // lumens
@@ -122,7 +121,7 @@ fn setup_scene(
         },
         Transform::from_xyz(-4., -10., -10.),
     ));
-*/
+
     /*
         // Cube
         commands.spawn((
@@ -172,7 +171,7 @@ fn setup_scene(
         PanOrbitCamera::default(),
         Camera3d { ..default() },
         EnvironmentMapLight {
-            intensity: 400.0,
+            intensity: 200.0,
            ..EnvironmentMapLight::solid_color(&mut image_assets, Color::WHITE)
            
             

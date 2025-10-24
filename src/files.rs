@@ -5,6 +5,7 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
     window::PrimaryWindow,
 };
+use directories::UserDirs;
 use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 use std::fs::ReadDir;
@@ -200,4 +201,32 @@ pub fn check_open_file_changed(
         // Store the new entity ID
         current_gltf.0 = Some(land_entity);
     }
+}
+
+
+
+pub fn home_dir() -> String {
+    //let path = "";
+
+    let user_dirs = UserDirs::new();
+    // let desktop_dir = match &user_dirs {
+    //     Some(user_dirs) => user_dirs.desktop_dir(),
+    //     None => {
+    //         println!("Could not retrieve user directories.");
+    //         None
+    //     }
+    // }
+    // .unwrap();
+
+    let home_dir = match &user_dirs {
+        Some(user_dirs) => user_dirs.home_dir(),
+        None => {
+            println!("Could not retrieve user directories.");
+            panic!()
+        }
+    };
+
+    //let p = home_dir.join(path);
+    home_dir.to_string_lossy().to_string()
+    
 }
