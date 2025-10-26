@@ -1,5 +1,11 @@
 use bevy::{
-    camera::{visibility::RenderLayers, Exposure, Viewport}, core_pipeline::tonemapping::Tonemapping, light::CascadeShadowConfigBuilder, pbr::AtmospherePlugin, prelude::*, tasks::{block_on, poll_once, AsyncComputeTaskPool, Task}, window::PrimaryWindow
+    camera::{Exposure, Viewport, visibility::RenderLayers},
+    core_pipeline::tonemapping::Tonemapping,
+    light::CascadeShadowConfigBuilder,
+    pbr::AtmospherePlugin,
+    prelude::*,
+    tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
+    window::PrimaryWindow,
 };
 use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
@@ -8,18 +14,29 @@ use bevy_egui::{
 use bevy_enhanced_input::{EnhancedInputPlugin, prelude::InputContextAppExt};
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bytesize::ByteSize;
-use std::{f32::consts::PI, fs};
+use std::{env, f32::consts::PI, fs};
 use view3d::{
     files::{
-        check_dir_changed, check_model_loaded, check_open_file_changed, home_dir, read_directory_files, CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile, ShowEditFileName, SortMode
+        CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile,
+        ShowEditFileName, SortMode, check_dir_changed, check_model_loaded, check_open_file_changed,
+        home_dir, read_directory_files,
     },
     style::styled_button,
-    ui::{handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system, UiKeyAction},
+    ui::{UiKeyAction, handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system},
 };
 
 use view3d::envlight::SolidColorEnvironmentMapLight;
 
 fn main() {
+    let args = env::args();
+    println!("{:?}", args);
+    let dir = if args.len() > 1 {
+        Directory(args.last().unwrap_or(".".to_string()))
+    } else {
+        let home = home_dir();
+        Directory(home)
+    };
+
     App::new()
         .insert_resource(ClearColor(Color::srgb(0.1, 0.1, 0.1)))
         .insert_resource(AmbientLight {
@@ -27,8 +44,8 @@ fn main() {
             color: Color::WHITE,
             brightness: 0.0,
         })
-        
-        .init_resource::<Directory>()
+        //.init_resource::<Directory>()
+        .insert_resource(dir)
         .init_resource::<ModelInfo>()
         .init_resource::<OpenFile>()
         .init_resource::<CurrentGltfEntity>()
@@ -43,7 +60,6 @@ fn main() {
         .add_plugins(PanOrbitCameraPlugin)
         .add_plugins(EguiPlugin::default())
         .add_plugins(EnhancedInputPlugin)
-   
         // systems
         .add_systems(Startup, setup_scene)
         .add_systems(Startup, setup_ui)
@@ -70,18 +86,15 @@ fn setup_scene(
     mut sort_mode: ResMut<SortMode>,
     asset_server: Res<AssetServer>,
     //mut image_assets: &mut Assets<Image>,
-    mut image_assets: ResMut<Assets<Image>>
+    mut image_assets: ResMut<Assets<Image>>,
 ) {
-    println!("Dir: {}", directory.0);
-    directory.0 = home_dir();
     let entries = read_directory_files(&directory.0, *sort_mode);
 
     commands.insert_resource(FileList(entries));
 
     // Disable the automatic creation of a primary context to set it up manually for the camera we need.
     egui_global_settings.auto_create_primary_context = false;
-    
-    
+
     commands.spawn((
         DirectionalLight {
             //illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
@@ -111,7 +124,7 @@ fn setup_scene(
         Transform::from_xyz(-10., 10., 10.),
     ));
 
-     commands.spawn((
+    commands.spawn((
         PointLight {
             intensity: 1_000_000., // lumens
             color: Color::WHITE,
@@ -173,9 +186,7 @@ fn setup_scene(
         Camera3d { ..default() },
         EnvironmentMapLight {
             intensity: 200.0,
-           ..EnvironmentMapLight::solid_color(&mut image_assets, Color::WHITE)
-           
-            
+            ..EnvironmentMapLight::solid_color(&mut image_assets, Color::WHITE)
         },
         //Exposure::SUNLIGHT,
         Tonemapping::ReinhardLuminance,
@@ -194,10 +205,6 @@ fn setup_scene(
         },
     ));
 }
-
-
-
-
 
 use bevy::{
     asset::RenderAssetUsages,
