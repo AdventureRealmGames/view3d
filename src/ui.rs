@@ -329,7 +329,8 @@ pub fn ui_system(
             if path != "".to_string() {
                 ui.horizontal(|ui| {
                     if show_edit_file_name.0 {
-                        ui.text_edit_singleline(&mut edit_file_name.0);
+                        ui.add_sized(ui.available_size()- bevy_egui::egui::Vec2::new(40.0, 0.0), egui::TextEdit::singleline(&mut edit_file_name.0));
+                        //ui.text_edit_singleline(&mut edit_file_name.0);
                         if ui.button("Save").clicked() {
                             let src = path.clone();
                             let dest = edit_file_name.0.clone();
