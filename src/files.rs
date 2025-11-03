@@ -243,7 +243,10 @@ pub fn check_model_loaded(
     let mut polygon_count: usize = 0;
     for (mesh_handle, mesh) in meshes.iter() {
         vertex_count += mesh.count_vertices();
-        let index_count = mesh.indices().unwrap().len();
+        let index_count = match mesh.indices() {
+            Some(i) => i.len(),
+            None => 0,
+        };
         polygon_count += index_count / 3;
         println!(
             "Mesh {:?}: {} vertices, {} polygons",
