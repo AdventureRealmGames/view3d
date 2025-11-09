@@ -1,8 +1,8 @@
 use bevy::{
     camera::{Exposure, Viewport, visibility::RenderLayers},
-    core_pipeline::tonemapping::Tonemapping,
+    core_pipeline::{prepass::{DepthPrepass, MotionVectorPrepass, NormalPrepass}, tonemapping::Tonemapping},
     light::CascadeShadowConfigBuilder,
-    pbr::AtmospherePlugin,
+    pbr::{AtmospherePlugin, ExtendedMaterial},
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
     window::PrimaryWindow,
@@ -19,8 +19,9 @@ use view3d::{
     files::{
         CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile,
         ShowEditFileName, SortMode, check_dir_changed, check_model_loaded, check_open_file_changed,
-        home_dir, read_directory_files,
+        home_dir, list_approved_dir_files,
     },
+    objects::{EnvironmentMaterial, change_material},
     style::styled_button,
     ui::{UiKeyAction, handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system},
 };
@@ -60,6 +61,9 @@ fn main() {
         .add_plugins(PanOrbitCameraPlugin)
         .add_plugins(EguiPlugin::default())
         .add_plugins(EnhancedInputPlugin)
+        .add_plugins(MaterialPlugin::<
+            ExtendedMaterial<StandardMaterial, EnvironmentMaterial>,
+        >::default())
         // systems
         .add_systems(Startup, setup_scene)
         .add_systems(Startup, setup_ui)
@@ -70,6 +74,7 @@ fn main() {
         .add_observer(handle_file_nav_up)
         .add_observer(handle_file_nav_down)
         .add_observer(check_model_loaded)
+        .add_observer(change_material)
         //input
         .add_input_context::<UiKeyAction>()
         .run();
@@ -88,7 +93,7 @@ fn setup_scene(
     //mut image_assets: &mut Assets<Image>,
     mut image_assets: ResMut<Assets<Image>>,
 ) {
-    let entries = read_directory_files(&directory.0, *sort_mode);
+    let entries = list_approved_dir_files(&directory.0, *sort_mode);
 
     commands.insert_resource(FileList(entries));
 
@@ -112,29 +117,29 @@ fn setup_scene(
         .build(),
     ));
 
-    commands.spawn((
-        PointLight {
-            intensity: 1_500_000., // lumens
-            color: Color::WHITE,
-            shadows_enabled: false,
-            radius: 0.,
-            range: 1000.,
-            ..default()
-        },
-        Transform::from_xyz(-10., 10., 10.),
-    ));
+    // commands.spawn((
+    //     PointLight {
+    //         intensity: 1_500_000., // lumens
+    //         color: Color::WHITE,
+    //         shadows_enabled: false,
+    //         radius: 0.,
+    //         range: 1000.,
+    //         ..default()
+    //     },
+    //     Transform::from_xyz(-10., 10., 10.),
+    // ));
 
-    commands.spawn((
-        PointLight {
-            intensity: 1_000_000., // lumens
-            color: Color::WHITE,
-            shadows_enabled: false,
-            radius: 0.,
-            range: 2000.,
-            ..default()
-        },
-        Transform::from_xyz(-4., -10., -10.),
-    ));
+    // commands.spawn((
+    //     PointLight {
+    //         intensity: 1_000_000., // lumens
+    //         color: Color::WHITE,
+    //         shadows_enabled: false,
+    //         radius: 0.,
+    //         range: 2000.,
+    //         ..default()
+    //     },
+    //     Transform::from_xyz(-4., -10., -10.),
+    // ));
 
     /*
         // Cube
@@ -179,18 +184,21 @@ fn setup_scene(
     */
     // 3D World camera positioned to view the scene
 
-    commands.spawn((
-        // Camera3d::default(),
-        Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
-        PanOrbitCamera::default(),
-        Camera3d { ..default() },
-        EnvironmentMapLight {
-            intensity: 200.0,
-            ..EnvironmentMapLight::solid_color(&mut image_assets, Color::WHITE)
-        },
-        //Exposure::SUNLIGHT,
-        Tonemapping::ReinhardLuminance,
-    ));
+
+    commands
+        .spawn((
+            // Camera3d::default(),
+            Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
+            PanOrbitCamera::default(),
+            Camera3d { ..default() },
+            // EnvironmentMapLight {
+            //     intensity: 200.0,
+            //     ..EnvironmentMapLight::solid_color(&mut image_assets, Color::WHITE)
+            // },
+            //Exposure::SUNLIGHT,
+            Tonemapping::ReinhardLuminance,
+        ))
+        .insert((DepthPrepass, NormalPrepass, MotionVectorPrepass));
 
     // Egui camera
     commands.spawn((

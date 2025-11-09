@@ -1,6 +1,6 @@
 use crate::{
     files::{
-        check_dir_changed, check_open_file_changed, file_dir_path, read_directory_files, CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile, ShowEditFileName, SortMode
+        check_dir_changed, check_open_file_changed, file_dir_path, list_approved_dir_files, CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile, ShowEditFileName, SortMode
     },
     style::styled_button,
 };
@@ -169,7 +169,7 @@ pub fn ui_system(
                     }
                 }
                 if ui.button("Refresh").clicked() {
-                    file_list.0 = read_directory_files(&directory.0, *sort_mode);
+                    file_list.0 = list_approved_dir_files(&directory.0, *sort_mode);
                 }
             });
 
@@ -307,7 +307,7 @@ pub fn ui_system(
                         Ok(_) => {
                             println!("Successfully deleted {:?}", open_file.0);
                             open_file.0 = "".to_string();
-                            file_list.0 = read_directory_files(&directory.0, *sort_mode);
+                            file_list.0 = list_approved_dir_files(&directory.0, *sort_mode);
                         }
                         Err(e) => println!("Error deleting {:?}\n{:?}", open_file.0, e),
                     }
@@ -338,7 +338,7 @@ pub fn ui_system(
                                 Ok(_) => {
                                     open_file.0 = dest;
                                     show_edit_file_name.0 = false;
-                                    file_list.0 = read_directory_files(&directory.0, *sort_mode);
+                                    file_list.0 = list_approved_dir_files(&directory.0, *sort_mode);
                                 }
                                 Err(e) => {
                                     //TODO handle this

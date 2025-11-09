@@ -1,10 +1,5 @@
 use bevy::{
-    ecs::relationship::RelationshipSourceCollection,
-    light::CascadeShadowConfigBuilder,
-    prelude::*,
-    scene::SceneInstanceReady,
-    tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
-    window::PrimaryWindow,
+    color::palettes, ecs::relationship::RelationshipSourceCollection, light::CascadeShadowConfigBuilder, pbr::ExtendedMaterial, prelude::*, scene::SceneInstanceReady, tasks::{AsyncComputeTaskPool, Task, block_on, poll_once}, window::PrimaryWindow
 };
 use directories::UserDirs;
 use serde::{Deserialize, Serialize};
@@ -17,6 +12,8 @@ use bevy_egui::{
     PrimaryEguiContext, egui,
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
+
+use crate::objects::{ColorOverride};
 
 #[derive(Resource)]
 pub struct Directory(pub String);
@@ -80,7 +77,7 @@ pub fn check_dir_changed(
     sort_mode: Res<SortMode>,
 ) {
     if dir.is_changed() || sort_mode.is_changed() {
-        file_list.0 = read_directory_files(&dir.0, *sort_mode);
+        file_list.0 = list_approved_dir_files(&dir.0, *sort_mode);
     }
 }
 
@@ -91,7 +88,7 @@ pub fn check_dir_changed(
 //     }
 // }
 
-pub fn read_directory_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
+pub fn list_approved_dir_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
     // Define accepted file extensions
     let accepted_extensions = ["glb", "gltf"];
 
@@ -173,7 +170,7 @@ pub fn check_open_file_changed(
     asset_server: Res<AssetServer>,
     //mut meshes: ResMut<Assets<Mesh>>,
     //mut materials: ResMut<Assets<StandardMaterial>>,
-    mut current_gltf: ResMut<CurrentGltfEntity>,
+    mut current_gltf: ResMut<CurrentGltfEntity>,    
 ) {
     if open_file.is_changed() {
         // Despawn the old GLTF entity if it exists
@@ -196,6 +193,8 @@ pub fn check_open_file_changed(
                     rotation: Default::default(),
                     scale: Vec3::new(scale, scale, scale),
                 },
+                //this is a flag to allow the color overide observer to swap out the standard with the custom shader
+                ColorOverride(palettes::tailwind::GRAY_950.into()),
             ))
             .id();
         // Store the new entity ID
