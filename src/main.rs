@@ -197,8 +197,15 @@ fn setup_scene(
             // },
             //Exposure::SUNLIGHT,
             Tonemapping::ReinhardLuminance,
+            
         ))
-        .insert((DepthPrepass, NormalPrepass, MotionVectorPrepass));
+        .insert((DepthPrepass, NormalPrepass, MotionVectorPrepass))
+        // .insert(AmbientLight {
+        //     affects_lightmapped_meshes: true,
+        //     color: Color::WHITE,
+        //     brightness: 0.0,
+        // })
+        ;
 
     // Egui camera
     commands.spawn((

@@ -97,13 +97,15 @@ fn fragment(
     let base_material = pbr_input.material.base_color;
     let lit = apply_pbr_lighting(pbr_input);
     out.color = (ambient_light * base_material) + (lit * (1.0 - ambient_light));
+    //out.color = apply_pbr_lighting(pbr_input);
+
     // we can optionally modify the lit color before post-processing is applied
     //out.color = vec4<f32>(vec4<u32>(out.color * f32(my_extended_material.quantize_steps))) / f32(my_extended_material.quantize_steps);
 
     // apply in-shader post processing (fog, alpha-premultiply, and also tonemapping, debanding if the camera is non-hdr)
     // note this does not include fullscreen postprocessing effects like bloom.
-    out.color = main_pass_post_lighting_processing(pbr_input, out.color);
-
+    //out.color = main_pass_post_lighting_processing(pbr_input, out.color);
+    let temp = out.color.rgb;
 
 
     // // Calculate depth effects
@@ -165,7 +167,8 @@ fn fragment(
     //         return vec4<f32>(final_mix, 1.0);
     //     }        
     // } else {
-        return vec4<f32>(depth_mix, 1.0);
+    return vec4<f32>(temp, 1.0);
+        //return vec4<f32>(depth_mix, 1.0);
        
     //}
     
