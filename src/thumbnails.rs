@@ -154,6 +154,7 @@ pub fn process_thumbnail_queue(
         // Prepare scene and rendering resources
         let scene_path = format!("{}#Scene0", file_path);
         let scene = asset_server.load(scene_path);
+        
 
         // Spawn model targeted for the thumbnail layer
         let model_entity = commands
@@ -188,7 +189,7 @@ pub fn process_thumbnail_queue(
                     clear_color: Color::srgb(0.001, 0.001, 0.001).into(),
                     ..default()
                 },
-                Transform::from_xyz(0.0, 0.420, 1.20).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
+                Transform::from_xyz(0.0, 0.420, 1.60).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
                 RenderLayers::layer(THUMBNAIL_LAYER),
                 ThumbnailCamera {
                     file_path: file_path.clone(),

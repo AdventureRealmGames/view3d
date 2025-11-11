@@ -463,7 +463,7 @@ pub fn ui_system(
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 //ui.heading("File Grid");
-                let card_size = egui::vec2(120.0, 120.0);
+                let card_size = egui::vec2(140.0, 140.0);
                 let spacing = 8.0;
 
                 // Compute number of columns based on available width
@@ -494,12 +494,9 @@ pub fn ui_system(
                                     let button = egui::Button::image(egui::Image::new(
                                         egui::load::SizedTexture::new(*texture_id, card_size),
                                     ))
-                                    .corner_radius(egui::CornerRadius::same(8))
+                                    .fill(egui::Color32::from_rgb(0, 0, 0))
                                     .stroke(egui::Stroke::NONE)
-                                    // .stroke(
-                                    //     egui::Stroke::new(2.0, egui::Color32::from_rgb(0, 0, 0)),
-                                    // )
-                                    ;
+                                    .corner_radius(8);
 
                                     if ui.add_sized(card_size, button).clicked() {
                                         open_file.0 = entry_path_str.clone();
