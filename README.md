@@ -15,9 +15,14 @@
 
 
 # DOING
+* Verify grid steadily updates thumbnails without UI blanking
 * Test GLTF thumbnail rendering in grid view
 
 # DONE
+* Queue-based one-at-a-time thumbnail generation
+* Dedicated single thumbnail RenderLayer (7) and offscreen camera rendering to Image
+* Restrict main world camera/light to layer 0 and raise draw order; prevent GLTF cameras from taking over the window; UI stays visible
+* Disable GLTF cameras in loaded scenes during thumbnail rendering
 * Apply thumbnail render layer to entire GLTF scene hierarchy
 * Defer thumbnail capture until assets load (avoid grey clears)
 * Scope cleanup to per-file entities and fix despawn warnings

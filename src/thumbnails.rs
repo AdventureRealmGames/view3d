@@ -4,7 +4,7 @@ use bevy::{
     }
 };
 use bevy::asset::LoadState;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
 
@@ -17,10 +17,17 @@ pub struct ThumbnailCache {
     pub pending: HashMap<String, ThumbnailState>,
 }
 
+#[derive(Resource, Default)]
+pub struct ThumbnailQueue {
+    pub queue: VecDeque<String>,
+    pub busy: bool,
+}
+
 /// State of a thumbnail being generated
 #[derive(Debug, Clone)]
 pub enum ThumbnailState {
-    Loading(Entity),      // Entity of the loaded model
+    Queued,               // Waiting in the queue
+    Loading(Entity),      // Entity of the loaded model (unused currently)
     Rendering(Entity),    // Entity of the camera rendering it
     Ready,                // Thumbnail is ready in cache
 }
@@ -49,7 +56,7 @@ pub struct ThumbnailLight {
 
 
 /// Marker for the thumbnail render layer
-pub const THUMBNAIL_LAYER: usize = 1;
+pub const THUMBNAIL_LAYER: usize = 7;
 
 /// Size of thumbnail textures
 pub const THUMBNAIL_SIZE: u32 = 256;
@@ -71,17 +78,15 @@ pub struct GenerateThumbnail {
 
 /// System to handle thumbnail generation requests
 pub fn handle_thumbnail_requests(
-    mut commands: Commands,
     mut events: MessageReader<GenerateThumbnail>,
     mut cache: ResMut<ThumbnailCache>,
+    mut queue: ResMut<ThumbnailQueue>,
     mut images: ResMut<Assets<Image>>,
-    asset_server: Res<AssetServer>,
 ) {
     for event in events.read() {
         let file_path = event.file_path.clone();
         println!("[THUMBNAIL] Received request to generate thumbnail for: {:?}", file_path);
-        let layer = compute_layer(&file_path);
-        
+
         // Skip if already in cache or pending
         if cache.thumbnails.contains_key(&file_path) {
             println!("[THUMBNAIL] Already in cache, skipping: {:?}", file_path);
@@ -91,9 +96,10 @@ pub fn handle_thumbnail_requests(
             println!("[THUMBNAIL] Already pending, skipping: {:?}", file_path);
             continue;
         }
-        
-        println!("[THUMBNAIL] Starting thumbnail generation for: {:?}", file_path);
-        // Create render target texture
+
+        println!("[THUMBNAIL] Queuing thumbnail generation for: {:?}", file_path);
+
+        // Create render target texture now so UI can hold a handle (will be filled when ready)
         let size = Extent3d {
             width: THUMBNAIL_SIZE,
             height: THUMBNAIL_SIZE,
@@ -117,20 +123,45 @@ pub fn handle_thumbnail_requests(
         };
         image.resize(size);
         let image_handle = images.add(image);
-        println!("[THUMBNAIL] Created render target image with handle: {:?}", image_handle);
+        cache.thumbnails.insert(file_path.clone(), image_handle);
+        cache.pending.insert(file_path.clone(), ThumbnailState::Queued);
 
-        // Load the GLTF model
+        // Push into the generation queue
+        queue.queue.push_back(file_path.clone());
+        println!("[THUMBNAIL] Enqueued: {:?}. Queue length: {}", file_path, queue.queue.len());
+    }
+}
+
+/// System to drive queued thumbnail generation, processing exactly one at a time
+pub fn process_thumbnail_queue(
+    mut commands: Commands,
+    mut queue: ResMut<ThumbnailQueue>,
+    mut cache: ResMut<ThumbnailCache>,
+    mut images: ResMut<Assets<Image>>,
+    asset_server: Res<AssetServer>,
+) {
+    if queue.busy {
+        return;
+    }
+
+    if let Some(file_path) = queue.queue.pop_front() {
+        println!("[THUMBNAIL] Dequeued: {:?}. Starting generation.", file_path);
+        queue.busy = true;
+
+        // Use a single shared render layer for all thumbnails
+        let layer = THUMBNAIL_LAYER as u8;
+
+        // Prepare scene and rendering resources
         let scene_path = format!("{}#Scene0", file_path);
-        println!("[THUMBNAIL] Loading scene from: {:?}", scene_path);
         let scene = asset_server.load(scene_path);
 
-        // Spawn the model on the thumbnail layer
+        // Spawn model targeted for the thumbnail layer
         let model_entity = commands
             .spawn((
                 SceneRoot(scene),
                 Transform::from_scale(Vec3::splat(1.0)),
                 Visibility::Visible,
-                RenderLayers::layer(layer as usize),
+                RenderLayers::layer(THUMBNAIL_LAYER),
                 ThumbnailModel {
                     file_path: file_path.clone(),
                     layer,
@@ -140,22 +171,28 @@ pub fn handle_thumbnail_requests(
             .id();
         println!("[THUMBNAIL] Spawned model entity: {:?}", model_entity);
 
-        // Spawn a camera to render the thumbnail
+        // Resolve the render target created during enqueue
+        let image_handle = cache
+            .thumbnails
+            .get(&file_path)
+            .cloned()
+            .expect("Thumbnail image handle must exist");
+
+        // Spawn offscreen camera to render into the image
         let camera_entity = commands
             .spawn((
                 Camera3d::default(),
                 Camera {
-                    order: -10, // Render before main camera
+                    order: -10,
                     target: image_handle.clone().into(),
                     clear_color: Color::srgb(0.001, 0.001, 0.001).into(),
                     ..default()
                 },
-                //Transform::from_xyz(2.0, 2.0, 2.0).looking_at(Vec3::ZERO, Vec3::Y),
                 Transform::from_xyz(0.0, 0.420, 1.20).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
-                RenderLayers::layer(layer as usize),
+                RenderLayers::layer(THUMBNAIL_LAYER),
                 ThumbnailCamera {
                     file_path: file_path.clone(),
-                    frames_to_render: 3, // Render for a few frames to ensure model is loaded
+                    frames_to_render: 3,
                     layer,
                 },
             ))
@@ -163,7 +200,7 @@ pub fn handle_thumbnail_requests(
             .id();
         println!("[THUMBNAIL] Spawned camera entity: {:?}", camera_entity);
 
-        // Add a light for the thumbnail
+        // Add a light affecting only the thumbnail layer
         commands.spawn((
             DirectionalLight {
                 illuminance: 10_000.0,
@@ -176,32 +213,39 @@ pub fn handle_thumbnail_requests(
                 std::f32::consts::PI / 2.0,
                 -std::f32::consts::PI / 4.0,
             )),
-            RenderLayers::layer(layer as usize),
+            RenderLayers::layer(THUMBNAIL_LAYER),
             ThumbnailLight {
                 file_path: file_path.clone(),
                 layer,
             },
         ));
 
-        // Store in cache as pending
-        cache.pending.insert(file_path.clone(), ThumbnailState::Rendering(camera_entity));
-        cache.thumbnails.insert(file_path.clone(), image_handle.clone());
-        println!("[THUMBNAIL] Added to cache - pending state and image handle for: {:?}", file_path);
-        println!("[THUMBNAIL] Total thumbnails in cache: {}", cache.thumbnails.len());
+        // Mark as actively rendering
+        cache
+            .pending
+            .insert(file_path.clone(), ThumbnailState::Rendering(camera_entity));
+
+        println!(
+            "[THUMBNAIL] Generation started for: {:?} (remaining in queue: {})",
+            file_path,
+            queue.queue.len()
+        );
     }
 }
 
 /// System to clean up thumbnail cameras after rendering
 pub fn cleanup_thumbnail_cameras(
     mut commands: Commands,
-    mut cameras: Query<(Entity, &mut ThumbnailCamera)>,
+    mut active_thumbnail_cameras: Query<(Entity, &mut ThumbnailCamera)>,
     mut cache: ResMut<ThumbnailCache>,
+    mut queue: ResMut<ThumbnailQueue>,
     models: Query<(Entity, &ThumbnailModel, &SceneRoot)>,
     lights: Query<(Entity, &ThumbnailLight)>,
     children: Query<&Children>,
+    mut scene_cameras: Query<&mut Camera>,
     asset_server: Res<AssetServer>,
 ) {
-    for (entity, mut camera) in cameras.iter_mut() {
+    for (entity, mut camera) in active_thumbnail_cameras.iter_mut() {
         // Wait until the glTF scene for this thumbnail is fully loaded
         let mut scene_loaded = false;
         for (model_entity, model, scene_root) in models.iter() {
@@ -210,7 +254,12 @@ pub fn cleanup_thumbnail_cameras(
                 if let Some(LoadState::Loaded) = state {
                     // Ensure the entire spawned scene hierarchy is on the thumbnail render layer,
                     // otherwise the camera won't see child meshes.
-                    apply_layers_recursive(model_entity, model.layer as usize, &mut commands, &children);
+                    apply_layers_recursive(model_entity, THUMBNAIL_LAYER, &mut commands, &children);
+
+                    // Disable any cameras that may have been loaded from the GLTF scene to prevent
+                    // them from rendering to the main window.
+                    disable_cameras_recursive(model_entity, &mut scene_cameras, &children);
+
                     scene_loaded = true;
                     break;
                 }
@@ -258,6 +307,9 @@ pub fn cleanup_thumbnail_cameras(
                     println!("[THUMBNAIL] Despawned light entity: {:?}", light_entity);
                 }
             }
+
+            // Allow the next item in the queue to proceed
+            queue.busy = false;
         }
     }
 }
@@ -268,6 +320,18 @@ fn apply_layers_recursive(entity: Entity, layer: usize, commands: &mut Commands,
     if let Ok(children) = children_query.get(entity) {
         for child in children.iter() {
             apply_layers_recursive(child, layer, commands, children_query);
+        }
+    }
+}
+
+//// Recursively disable any Camera components under an entity hierarchy (e.g., GLTF cameras)
+fn disable_cameras_recursive(entity: Entity, scene_cameras: &mut Query<&mut Camera>, children_query: &Query<&Children>) {
+    if let Ok(mut cam) = scene_cameras.get_mut(entity) {
+        cam.is_active = false;
+    }
+    if let Ok(children) = children_query.get(entity) {
+        for child in children.iter() {
+            disable_cameras_recursive(child, scene_cameras, children_query);
         }
     }
 }

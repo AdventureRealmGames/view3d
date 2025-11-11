@@ -5,7 +5,7 @@ use crate::{
         dir_list_approved_files, file_dir_path,
     },
     style::styled_button,
-    thumbnails::{ThumbnailCache, GenerateThumbnail, ThumbnailState},
+    thumbnails::{GenerateThumbnail, ThumbnailCache, ThumbnailState},
 };
 use bevy::{
     camera::{Viewport, visibility::RenderLayers},
@@ -154,23 +154,27 @@ pub fn ui_system(
     }
 
     // Pre-fetch texture IDs for all thumbnails BEFORE getting ctx_mut
-    let mut thumbnail_textures: std::collections::HashMap<String, egui::TextureId> = std::collections::HashMap::new();
+    let mut thumbnail_textures: std::collections::HashMap<String, egui::TextureId> =
+        std::collections::HashMap::new();
     if state.view_mode == ViewMode::Grid {
         //println!("[UI] Grid mode active, pre-fetching thumbnail textures");
         //println!("[UI] Total files in list: {}", file_list.0.len());
         //println!("[UI] Total thumbnails in cache: {}", thumbnail_cache.thumbnails.len());
-        
+
         for entry in &file_list.0 {
             let entry_path = std::path::Path::new(&directory.0).join(entry.name.clone());
             if !entry_path.is_dir() {
                 let entry_path_str = entry_path.to_str().unwrap_or("").to_string();
                 //println!("[UI] Checking thumbnail for: {:?}", entry_path_str);
-                
+
                 // Only display thumbnails that are actually ready; otherwise keep showing placeholder.
                 if let Some(ThumbnailState::Ready) = thumbnail_cache.pending.get(&entry_path_str) {
-                    if let Some(thumbnail_handle) = thumbnail_cache.thumbnails.get(&entry_path_str) {
+                    if let Some(thumbnail_handle) = thumbnail_cache.thumbnails.get(&entry_path_str)
+                    {
                         // Add Handle<Image> directly to egui and cache the TextureId
-                        let texture_id = contexts.add_image(bevy_egui::EguiTextureHandle::Strong(thumbnail_handle.clone()));
+                        let texture_id = contexts.add_image(bevy_egui::EguiTextureHandle::Strong(
+                            thumbnail_handle.clone(),
+                        ));
                         thumbnail_textures.insert(entry_path_str, texture_id);
                     }
                 } else {
@@ -180,7 +184,7 @@ pub fn ui_system(
         }
         //println!("[UI] Pre-fetched {} texture IDs", thumbnail_textures.len());
     }
-    
+
     let ctx = contexts.ctx_mut()?;
 
     let mut left = egui::SidePanel::left("left_panel")
@@ -475,25 +479,24 @@ pub fn ui_system(
                     .spacing([spacing, spacing])
                     .show(ui, |ui| {
                         for (i, entry) in file_list.0.iter().enumerate() {
-                            let entry_path = std::path::Path::new(&directory.0).join(entry.name.clone());
+                            let entry_path =
+                                std::path::Path::new(&directory.0).join(entry.name.clone());
                             if entry_path.is_dir() {
-                                continue
+                                continue;
                             }
-                            
+
                             let entry_path_str = entry_path.to_str().unwrap_or("").to_string();
-                            
+
                             ui.vertical(|ui| {
                                 // Try to get thumbnail texture
                                 if let Some(texture_id) = thumbnail_textures.get(&entry_path_str) {
                                     //println!("[UI] Displaying thumbnail for: {:?}", entry_path_str);
-                                    let button = egui::widgets::ImageButton::new(
-                                        egui::Image::new(egui::load::SizedTexture::new(
-                                            *texture_id,
-                                            card_size,
-                                        ))
-                                    );
+                                    let button = egui::widgets::ImageButton::new(egui::Image::new(
+                                        egui::load::SizedTexture::new(*texture_id, card_size),
+                                    ));
                                     if ui.add_sized(card_size, button).clicked() {
                                         open_file.0 = entry_path_str.clone();
+                                        state.view_mode = ViewMode::Model;
                                     }
                                 } else {
                                     //println!("[UI] Displaying placeholder for: {:?}", entry_path_str);
@@ -506,14 +509,16 @@ pub fn ui_system(
                                     } else {
                                         //println!("[UI] Thumbnail in cache but no texture_id for: {:?}", entry_path_str);
                                     }
-                                    let button = egui::widgets::ImageButton::new(egui::include_image!(
-                                        "../assets/icons/file.png"
-                                    ));
+                                    let button = egui::widgets::ImageButton::new(
+                                        egui::include_image!("../assets/icons/file.png"),
+                                    );
                                     if ui.add_sized(card_size, button).clicked() {
                                         open_file.0 = entry_path_str.clone();
                                     }
                                 }
-                                ui.label(&entry.name);
+                                //ui.label(&entry.name);
+                                //ui.add(egui::Label::new(&entry.name).wrap());
+                                ui.add(egui::Label::new(&entry.name).truncate());
                             });
                             if (i + 1) % num_columns == 0 {
                                 ui.end_row();

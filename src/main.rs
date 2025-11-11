@@ -24,7 +24,7 @@ use view3d::{
     objects::{EnvironmentMaterial, change_material},
     style::styled_button,
     ui::{UiKeyAction, handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system},
-    thumbnails::{ThumbnailCache, GenerateThumbnail, handle_thumbnail_requests, cleanup_thumbnail_cameras},
+    thumbnails::{ThumbnailCache, ThumbnailQueue, GenerateThumbnail, handle_thumbnail_requests, process_thumbnail_queue, cleanup_thumbnail_cameras},
 };
 
 use view3d::envlight::SolidColorEnvironmentMapLight;
@@ -55,6 +55,7 @@ fn main() {
         .init_resource::<ShowEditFileName>()
         .insert_resource(SortMode::Name)
         .init_resource::<ThumbnailCache>()
+        .init_resource::<ThumbnailQueue>()
         .add_event::<GenerateThumbnail>()
         //plugins
         .add_plugins(DefaultPlugins.set(AssetPlugin {
@@ -75,6 +76,7 @@ fn main() {
         .add_systems(Update, check_dir_changed)
         .add_systems(Update, check_open_file_changed)
         .add_systems(Update, handle_thumbnail_requests)
+        .add_systems(Update, process_thumbnail_queue)
         .add_systems(Update, cleanup_thumbnail_cameras)
         //observers
         .add_observer(handle_file_nav_up)
@@ -142,6 +144,8 @@ fn setup_scene(
             ..default()
         }
         .build(),
+        // Ensure this light only affects the main world, not thumbnails
+        RenderLayers::layer(0),
     ));
 
     // commands.spawn((
@@ -218,6 +222,9 @@ fn setup_scene(
             Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
             PanOrbitCamera::default(),
             Camera3d { ..default() },
+            Camera { order: 50, ..default() },
+            // Ensure the main camera does not render thumbnail entities on layer 7
+            RenderLayers::layer(0),
             
             // EnvironmentMapLight {
             //     intensity: 200.0,
@@ -243,7 +250,7 @@ fn setup_scene(
         // Setting RenderLayers to none makes sure we won't render anything apart from the UI.
         RenderLayers::none(),
         Camera {
-            order: 1,
+            order: 100,
             ..default()
         },
     ));
