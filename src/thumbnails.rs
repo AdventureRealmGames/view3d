@@ -186,7 +186,9 @@ pub fn process_thumbnail_queue(
                 Camera {
                     order: -10,
                     target: image_handle.clone().into(),
-                    clear_color: Color::srgb(0.001, 0.001, 0.001).into(),
+                    clear_color: Color::srgb_u8(25, 26, 27).into(),
+                    //
+                    //Color::srgb_u8(15, 16,17).into(),
                     ..default()
                 },
                 Transform::from_xyz(0.0, 0.420, 1.60).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),

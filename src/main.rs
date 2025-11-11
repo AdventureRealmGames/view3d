@@ -1,11 +1,5 @@
 use bevy::{
-    camera::{Exposure, Viewport, visibility::RenderLayers},
-    core_pipeline::{prepass::{DepthPrepass, MotionVectorPrepass, NormalPrepass}, tonemapping::Tonemapping},
-    light::CascadeShadowConfigBuilder,
-    pbr::{AtmospherePlugin, ExtendedMaterial },
-    prelude::*,
-    tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
-    window::PrimaryWindow,
+    camera::{Exposure, Viewport, visibility::RenderLayers}, color::palettes::css::BLUE, core_pipeline::{prepass::{DepthPrepass, MotionVectorPrepass, NormalPrepass}, tonemapping::Tonemapping}, light::CascadeShadowConfigBuilder, pbr::{AtmospherePlugin, ExtendedMaterial }, prelude::*, tasks::{AsyncComputeTaskPool, Task, block_on, poll_once}, window::PrimaryWindow
 };
 use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
@@ -40,7 +34,8 @@ fn main() {
     };
 
     App::new()
-        .insert_resource(ClearColor(Color::srgb(0.1, 0.1, 0.1)))
+.insert_resource(ClearColor(    Color::srgb_u8(15, 16,17)    ))
+        
         .insert_resource(AmbientLight {
             affects_lightmapped_meshes: true,
             color: Color::WHITE,

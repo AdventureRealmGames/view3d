@@ -16,7 +16,7 @@ use bevy::{
 };
 use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
-    EguiUserTextures, PrimaryEguiContext, egui,
+    EguiUserTextures, PrimaryEguiContext, egui::{self, Color32},
 };
 use bevy_enhanced_input::condition::press::Press;
 use bevy_enhanced_input::{action::Action, actions, prelude::*};
@@ -187,7 +187,14 @@ pub fn ui_system(
 
     let ctx = contexts.ctx_mut()?;
 
+    let my_frame = egui::containers::Frame {
+        
+        fill: egui::Color32::from_rgb(15, 16,17),
+        ..Default::default()
+    };
+
     let mut left = egui::SidePanel::left("left_panel")
+    .frame(my_frame)
         .resizable(true)
         .show(ctx, |ui| {
             // text input section
@@ -341,6 +348,7 @@ pub fn ui_system(
     // });
 
     let mut right = egui::SidePanel::right("right_panel")
+     .frame(my_frame)
         .resizable(true)
         .show(ctx, |ui| {
             if open_file.0 != "".to_string() {
@@ -374,6 +382,7 @@ pub fn ui_system(
         .width(); // height is ignored, as the panel has a height of 100% of the screen
 
     let mut top = egui::TopBottomPanel::top("top_panel")
+     .frame(my_frame)
         .resizable(true)
         .show(ctx, |ui| {
             // Toggle button for view mode
@@ -442,7 +451,8 @@ pub fn ui_system(
         .rect
         .height(); // width is ignored, as the panel has a width of 100% of the screen
     let mut bottom = egui::TopBottomPanel::bottom("bottom_panel")
-        .resizable(true)
+     .frame(my_frame)
+        .resizable(true)        
         .show(ctx, |ui| {
             ui.label("");
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
@@ -460,7 +470,9 @@ pub fn ui_system(
     // Center view area
     // Render grid of 2D cards if in grid mode, otherwise set camera viewport as usual
     if state.view_mode == ViewMode::Grid {
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default()
+        .frame(my_frame)
+        .show(ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 //ui.heading("File Grid");
                 let card_size = egui::vec2(140.0, 140.0);
@@ -530,7 +542,7 @@ pub fn ui_system(
                                 }
                                 //ui.label(&entry.name);
                                 //ui.add(egui::Label::new(&entry.name).wrap());
-                                ui.add(egui::Label::new(&entry.name).truncate());
+                                ui.add_sized(egui::vec2(120.0, 16.0),egui::Label::new(&entry.name).truncate());
                             });
                             if (i + 1) % num_columns == 0 {
                                 ui.end_row();
