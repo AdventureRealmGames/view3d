@@ -5,6 +5,7 @@ use crate::{
         dir_list_approved_files, file_dir_path,
     },
     style::styled_button,
+    thumbnails::{ThumbnailCache, GenerateThumbnail, ThumbnailState},
 };
 use bevy::{
     camera::{Viewport, visibility::RenderLayers},
@@ -15,7 +16,7 @@ use bevy::{
 };
 use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
-    PrimaryEguiContext, egui,
+    EguiUserTextures, PrimaryEguiContext, egui,
 };
 use bevy_enhanced_input::condition::press::Press;
 use bevy_enhanced_input::{action::Action, actions, prelude::*};
@@ -130,6 +131,7 @@ pub fn ui_system(
     mut directory: ResMut<Directory>,
     mut open_file: ResMut<OpenFile>,
     mut contexts: EguiContexts,
+    images: Res<Assets<Image>>,
     mut camera: Single<&mut Camera, Without<EguiContext>>,
     mut state: Local<MyState>,
     mut file_dialog: Local<Option<Task<DialogResponse>>>,
@@ -139,6 +141,8 @@ pub fn ui_system(
     mut show_edit_file_name: ResMut<ShowEditFileName>,
     mut edit_file_name: ResMut<EditFileName>,
     mut model_info: ResMut<ModelInfo>,
+    thumbnail_cache: Res<ThumbnailCache>,
+    mut thumbnail_events: MessageWriter<GenerateThumbnail>,
 ) -> Result {
     // Poll the file dialog task FIRST, before any early returns
     if let Some(file_response) = file_dialog
@@ -149,6 +153,34 @@ pub fn ui_system(
         *file_dialog = None;
     }
 
+    // Pre-fetch texture IDs for all thumbnails BEFORE getting ctx_mut
+    let mut thumbnail_textures: std::collections::HashMap<String, egui::TextureId> = std::collections::HashMap::new();
+    if state.view_mode == ViewMode::Grid {
+        //println!("[UI] Grid mode active, pre-fetching thumbnail textures");
+        //println!("[UI] Total files in list: {}", file_list.0.len());
+        //println!("[UI] Total thumbnails in cache: {}", thumbnail_cache.thumbnails.len());
+        
+        for entry in &file_list.0 {
+            let entry_path = std::path::Path::new(&directory.0).join(entry.name.clone());
+            if !entry_path.is_dir() {
+                let entry_path_str = entry_path.to_str().unwrap_or("").to_string();
+                //println!("[UI] Checking thumbnail for: {:?}", entry_path_str);
+                
+                // Only display thumbnails that are actually ready; otherwise keep showing placeholder.
+                if let Some(ThumbnailState::Ready) = thumbnail_cache.pending.get(&entry_path_str) {
+                    if let Some(thumbnail_handle) = thumbnail_cache.thumbnails.get(&entry_path_str) {
+                        // Add Handle<Image> directly to egui and cache the TextureId
+                        let texture_id = contexts.add_image(bevy_egui::EguiTextureHandle::Strong(thumbnail_handle.clone()));
+                        thumbnail_textures.insert(entry_path_str, texture_id);
+                    }
+                } else {
+                    // Not ready yet; skip adding image id so UI will render the placeholder.
+                }
+            }
+        }
+        //println!("[UI] Pre-fetched {} texture IDs", thumbnail_textures.len());
+    }
+    
     let ctx = contexts.ctx_mut()?;
 
     let mut left = egui::SidePanel::left("left_panel")
@@ -447,13 +479,40 @@ pub fn ui_system(
                             if entry_path.is_dir() {
                                 continue
                             }
+                            
+                            let entry_path_str = entry_path.to_str().unwrap_or("").to_string();
+                            
                             ui.vertical(|ui| {
-                                ui.add_sized(
-                                    card_size,
-                                    egui::widgets::ImageButton::new(egui::include_image!(
+                                // Try to get thumbnail texture
+                                if let Some(texture_id) = thumbnail_textures.get(&entry_path_str) {
+                                    //println!("[UI] Displaying thumbnail for: {:?}", entry_path_str);
+                                    let button = egui::widgets::ImageButton::new(
+                                        egui::Image::new(egui::load::SizedTexture::new(
+                                            *texture_id,
+                                            card_size,
+                                        ))
+                                    );
+                                    if ui.add_sized(card_size, button).clicked() {
+                                        open_file.0 = entry_path_str.clone();
+                                    }
+                                } else {
+                                    //println!("[UI] Displaying placeholder for: {:?}", entry_path_str);
+                                    // Request thumbnail generation if not in cache, show placeholder
+                                    if !thumbnail_cache.thumbnails.contains_key(&entry_path_str) {
+                                        //println!("[UI] Requesting thumbnail generation for: {:?}", entry_path_str);
+                                        thumbnail_events.write(GenerateThumbnail {
+                                            file_path: entry_path_str.clone(),
+                                        });
+                                    } else {
+                                        //println!("[UI] Thumbnail in cache but no texture_id for: {:?}", entry_path_str);
+                                    }
+                                    let button = egui::widgets::ImageButton::new(egui::include_image!(
                                         "../assets/icons/file.png"
-                                    )),
-                                );
+                                    ));
+                                    if ui.add_sized(card_size, button).clicked() {
+                                        open_file.0 = entry_path_str.clone();
+                                    }
+                                }
                                 ui.label(&entry.name);
                             });
                             if (i + 1) % num_columns == 0 {

@@ -3,6 +3,7 @@ pub mod style;
 pub mod ui;
 pub mod envlight;
 pub mod objects;
+pub mod thumbnails;
 
 use std::fs::ReadDir;
 use serde::{Deserialize, Serialize};

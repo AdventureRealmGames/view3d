@@ -1,4 +1,6 @@
 # TODO
+* Auto-frame models for thumbnails
+* Only show placeholder until thumbnail Ready state
 * Fix File Dialog Popup
 * File name in top panel
   * Rename files
@@ -13,11 +15,18 @@
 
 
 # DOING
+* Test GLTF thumbnail rendering in grid view
+
+# DONE
+* Apply thumbnail render layer to entire GLTF scene hierarchy
+* Defer thumbnail capture until assets load (avoid grey clears)
+* Scope cleanup to per-file entities and fix despawn warnings
+* Implement GLTF thumbnail rendering system
+* Create thumbnail cache with render-to-texture
+* Integrate thumbnails into file grid
 * Test and verify toggle functionality
 * Button styling
 * Sorting
-
-# DONE
 * Integrate toggle logic into ui_system
 * Render grid of 2D cards in grid mode
 * Add toggle button to UI

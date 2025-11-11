@@ -24,6 +24,7 @@ use view3d::{
     objects::{EnvironmentMaterial, change_material},
     style::styled_button,
     ui::{UiKeyAction, handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system},
+    thumbnails::{ThumbnailCache, GenerateThumbnail, handle_thumbnail_requests, cleanup_thumbnail_cameras},
 };
 
 use view3d::envlight::SolidColorEnvironmentMapLight;
@@ -53,6 +54,8 @@ fn main() {
         .init_resource::<EditFileName>()
         .init_resource::<ShowEditFileName>()
         .insert_resource(SortMode::Name)
+        .init_resource::<ThumbnailCache>()
+        .add_event::<GenerateThumbnail>()
         //plugins
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             unapproved_path_mode: bevy::asset::UnapprovedPathMode::Allow,
@@ -71,6 +74,8 @@ fn main() {
         .add_systems(EguiPrimaryContextPass, ui_system)
         .add_systems(Update, check_dir_changed)
         .add_systems(Update, check_open_file_changed)
+        .add_systems(Update, handle_thumbnail_requests)
+        .add_systems(Update, cleanup_thumbnail_cameras)
         //observers
         .add_observer(handle_file_nav_up)
         .add_observer(handle_file_nav_down)
@@ -213,6 +218,7 @@ fn setup_scene(
             Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
             PanOrbitCamera::default(),
             Camera3d { ..default() },
+            
             // EnvironmentMapLight {
             //     intensity: 200.0,
             //     ..EnvironmentMapLight::solid_color(&mut image_assets, Color::WHITE)
