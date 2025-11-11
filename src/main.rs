@@ -19,7 +19,7 @@ use view3d::{
     files::{
         CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile,
         ShowEditFileName, SortMode, check_dir_changed, check_model_loaded, check_open_file_changed,
-        home_dir, list_approved_dir_files,
+        home_dir, dir_list_approved_files,
     },
     objects::{EnvironmentMaterial, change_material},
     style::styled_button,
@@ -101,7 +101,7 @@ fn setup_scene(
     //mut image_assets: &mut Assets<Image>,
     mut image_assets: ResMut<Assets<Image>>,
 ) {
-    let entries = list_approved_dir_files(&directory.0, *sort_mode);
+    let entries = dir_list_approved_files(&directory.0, *sort_mode);
 
     commands.insert_resource(FileList(entries));
 

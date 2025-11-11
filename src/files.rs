@@ -77,7 +77,7 @@ pub fn check_dir_changed(
     sort_mode: Res<SortMode>,
 ) {
     if dir.is_changed() || sort_mode.is_changed() {
-        file_list.0 = list_approved_dir_files(&dir.0, *sort_mode);
+        file_list.0 = dir_list_approved_files(&dir.0, *sort_mode);
     }
 }
 
@@ -88,7 +88,7 @@ pub fn check_dir_changed(
 //     }
 // }
 
-pub fn list_approved_dir_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
+pub fn dir_list_approved_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry> {
     // Define accepted file extensions
     let accepted_extensions = ["glb", "gltf"];
 
@@ -105,12 +105,12 @@ pub fn list_approved_dir_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry
                     if e.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
                         return true;
                     }
-                    // Check if file has an accepted extension
-                    e.path()
-                        .extension()
-                        .and_then(|ext| ext.to_str())
-                        .map(|ext| accepted_extensions.contains(&ext))
-                        .unwrap_or(false)
+    // Check if file has an accepted extension (case-insensitive)
+    e.path()
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| accepted_extensions.contains(&ext.to_lowercase().as_str()))
+        .unwrap_or(false)
                 })
                 // .map(|e| e.file_name().to_string_lossy().to_string())
                 //.collect();

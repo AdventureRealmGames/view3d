@@ -1,6 +1,8 @@
 use crate::{
     files::{
-        check_dir_changed, check_open_file_changed, file_dir_path, list_approved_dir_files, CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile, ShowEditFileName, SortMode
+        CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile,
+        ShowEditFileName, SortMode, check_dir_changed, check_open_file_changed,
+        dir_list_approved_files, file_dir_path,
     },
     style::styled_button,
 };
@@ -89,7 +91,7 @@ pub fn handle_file_nav_up(
         .unwrap_or_default()
         .to_string_lossy()
         .to_string();
-    
+
     if let Some(mut index) = file_list.0.iter().position(|x| x.name == path) {
         if index == 0 {
             index = file_list.0.len() - 1;
@@ -111,7 +113,7 @@ pub fn handle_file_nav_down(
         .unwrap_or_default()
         .to_string_lossy()
         .to_string();
-   
+
     if let Some(mut index) = file_list.0.iter().position(|x| x.name == path) {
         index += 1;
         if index + 1 > file_list.0.len() {
@@ -182,7 +184,7 @@ pub fn ui_system(
                     }
                 }
                 if ui.button("Refresh").clicked() {
-                    file_list.0 = list_approved_dir_files(&directory.0, *sort_mode);
+                    file_list.0 = dir_list_approved_files(&directory.0, *sort_mode);
                 }
             });
 
@@ -269,7 +271,7 @@ pub fn ui_system(
                         format!("{}", entry.name).as_ref(),
                         path.is_dir(),
                         is_selected,
-                        Some(egui::vec2(200.0, 30.0))
+                        Some(egui::vec2(200.0, 30.0)),
                     );
 
                     // Handle click
@@ -320,7 +322,7 @@ pub fn ui_system(
                         Ok(_) => {
                             println!("Successfully deleted {:?}", open_file.0);
                             open_file.0 = "".to_string();
-                            file_list.0 = list_approved_dir_files(&directory.0, *sort_mode);
+                            file_list.0 = dir_list_approved_files(&directory.0, *sort_mode);
                         }
                         Err(e) => println!("Error deleting {:?}\n{:?}", open_file.0, e),
                     }
@@ -357,7 +359,10 @@ pub fn ui_system(
             if path != "".to_string() {
                 ui.horizontal(|ui| {
                     if show_edit_file_name.0 {
-                        ui.add_sized(ui.available_size()- bevy_egui::egui::Vec2::new(40.0, 0.0), egui::TextEdit::singleline(&mut edit_file_name.0));
+                        ui.add_sized(
+                            ui.available_size() - bevy_egui::egui::Vec2::new(40.0, 0.0),
+                            egui::TextEdit::singleline(&mut edit_file_name.0),
+                        );
                         //ui.text_edit_singleline(&mut edit_file_name.0);
                         if ui.button("Save").clicked() {
                             let src = path.clone();
@@ -366,7 +371,7 @@ pub fn ui_system(
                                 Ok(_) => {
                                     open_file.0 = dest;
                                     show_edit_file_name.0 = false;
-                                    file_list.0 = list_approved_dir_files(&directory.0, *sort_mode);
+                                    file_list.0 = dir_list_approved_files(&directory.0, *sort_mode);
                                 }
                                 Err(e) => {
                                     //TODO handle this
@@ -420,32 +425,44 @@ pub fn ui_system(
     // Render grid of 2D cards if in grid mode, otherwise set camera viewport as usual
     if state.view_mode == ViewMode::Grid {
         egui::CentralPanel::default().show(ctx, |ui| {
-             egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.heading("File Grid");
-            let num_columns = 4;
-            let card_size = egui::vec2(120.0, 120.0);
-            let spacing = 16.0;
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                //ui.heading("File Grid");
+                let card_size = egui::vec2(120.0, 120.0);
+                let spacing = 8.0;
 
-            egui::Grid::new("file_grid")
-                .num_columns(num_columns)
-                .spacing([spacing, spacing])
-                .show(ui, |ui| {
-                    for (i, entry) in file_list.0.iter().enumerate() {
-                        ui.vertical_centered(|ui| {
-                            // Placeholder for image: use a colored rect for now
-                            ui.add_sized(card_size, egui::widgets::ImageButton::new(
-                                egui::include_image!("../assets/icons/file.png")
-                                
-                            ));
-                            ui.label(&entry.name);
-                        });
-                        if (i + 1) % num_columns == 0 {
-                            ui.end_row();
+                // Compute number of columns based on available width
+                let available_width = ui.available_width();
+                let num_columns = ((available_width + spacing) / (card_size.x + spacing))
+                    .floor()
+                    .max(1.0) as usize;
+
+                // Make the grid fill the available width
+                ui.set_width(available_width);
+                egui::Grid::new("file_grid")
+                    .num_columns(num_columns)
+                    .spacing([spacing, spacing])
+                    .show(ui, |ui| {
+                        for (i, entry) in file_list.0.iter().enumerate() {
+                            let entry_path = std::path::Path::new(&directory.0).join(entry.name.clone());
+                            if entry_path.is_dir() {
+                                continue
+                            }
+                            ui.vertical(|ui| {
+                                ui.add_sized(
+                                    card_size,
+                                    egui::widgets::ImageButton::new(egui::include_image!(
+                                        "../assets/icons/file.png"
+                                    )),
+                                );
+                                ui.label(&entry.name);
+                            });
+                            if (i + 1) % num_columns == 0 {
+                                ui.end_row();
+                            }
                         }
-                    }
-                });
+                    });
+            });
         });
-    });
     } else {
         // -------------------------------------------------
         // |  left   |            top   ^^^^^^   |  right  |
