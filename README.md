@@ -1,5 +1,11 @@
 Actively developing and changing. 
 
+
+# DOING
+* Verify grid steadily updates thumbnails without UI blanking
+* The Grid View is WIP. presently the second render layer is taking over the full view.
+* The scene camera is also going full window...
+
 # TODO
 * Auto-frame models for thumbnails
 * Only show placeholder until thumbnail Ready state
@@ -14,10 +20,6 @@ Actively developing and changing.
 * Shadows toggle
 * Arrow keys for next/previous in list
 * Sort list by name or date
-
-
-# DOING
-* Verify grid steadily updates thumbnails without UI blanking
 
 
 # DONE
