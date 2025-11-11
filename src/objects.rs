@@ -72,7 +72,7 @@ pub fn change_material(
                         color: LinearRgba::new(0.01, 0.01, 0.12, 1.00),
                         //color_texture: Some(asset_server.load("environment/ocean-06.png")),
                         color_texture: None,
-                        ambient_light: 0.5,
+                        ambient_light: 0.42,
                         // color_texture: Some(asset_server.load("branding/icon.png")),
                        
                         time: time.elapsed_secs_wrapped(),
