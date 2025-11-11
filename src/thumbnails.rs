@@ -56,7 +56,7 @@ pub struct ThumbnailLight {
 
 
 /// Marker for the thumbnail render layer
-pub const THUMBNAIL_LAYER: usize = 7;
+pub const THUMBNAIL_LAYER: usize = 1;
 
 /// Size of thumbnail textures
 pub const THUMBNAIL_SIZE: u32 = 256;

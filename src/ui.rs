@@ -491,9 +491,16 @@ pub fn ui_system(
                                 // Try to get thumbnail texture
                                 if let Some(texture_id) = thumbnail_textures.get(&entry_path_str) {
                                     //println!("[UI] Displaying thumbnail for: {:?}", entry_path_str);
-                                    let button = egui::widgets::ImageButton::new(egui::Image::new(
+                                    let button = egui::Button::image(egui::Image::new(
                                         egui::load::SizedTexture::new(*texture_id, card_size),
-                                    ));
+                                    ))
+                                    .corner_radius(egui::CornerRadius::same(8))
+                                    .stroke(egui::Stroke::NONE)
+                                    // .stroke(
+                                    //     egui::Stroke::new(2.0, egui::Color32::from_rgb(0, 0, 0)),
+                                    // )
+                                    ;
+
                                     if ui.add_sized(card_size, button).clicked() {
                                         open_file.0 = entry_path_str.clone();
                                         state.view_mode = ViewMode::Model;
@@ -509,11 +516,19 @@ pub fn ui_system(
                                     } else {
                                         //println!("[UI] Thumbnail in cache but no texture_id for: {:?}", entry_path_str);
                                     }
-                                    let button = egui::widgets::ImageButton::new(
-                                        egui::include_image!("../assets/icons/file.png"),
-                                    );
+                                    let button = egui::Button::image(egui::include_image!(
+                                        "../assets/icons/file.png"
+                                    ))
+                                    .corner_radius(egui::CornerRadius::same(8))
+                                    .stroke(egui::Stroke::NONE)
+                                    //.stroke(
+                                      //  egui::Stroke::new(2.0, egui::Color32::from_rgb(0, 0, 0)),
+                                    //)
+                                    ;
+
                                     if ui.add_sized(card_size, button).clicked() {
                                         open_file.0 = entry_path_str.clone();
+                                        state.view_mode = ViewMode::Model;
                                     }
                                 }
                                 //ui.label(&entry.name);

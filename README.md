@@ -1,3 +1,5 @@
+Actively developing and changing. 
+
 # TODO
 * Auto-frame models for thumbnails
 * Only show placeholder until thumbnail Ready state
@@ -16,9 +18,10 @@
 
 # DOING
 * Verify grid steadily updates thumbnails without UI blanking
-* Test GLTF thumbnail rendering in grid view
+
 
 # DONE
+* Test GLTF thumbnail rendering in grid view
 * Queue-based one-at-a-time thumbnail generation
 * Dedicated single thumbnail RenderLayer (7) and offscreen camera rendering to Image
 * Restrict main world camera/light to layer 0 and raise draw order; prevent GLTF cameras from taking over the window; UI stays visible
