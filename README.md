@@ -13,10 +13,15 @@
 
 
 # DOING
+* Test and verify toggle functionality
 * Button styling
 * Sorting
 
 # DONE
+* Integrate toggle logic into ui_system
+* Render grid of 2D cards in grid mode
+* Add toggle button to UI
+* Add state variable for view mode (3D/grid)
 * Support GLTF
 * Setup draggable panes
 * Setup 3d view

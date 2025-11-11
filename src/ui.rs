@@ -56,10 +56,23 @@ pub fn setup_ui(
     ));
 }
 
+#[derive(PartialEq)]
+pub enum ViewMode {
+    Model,
+    Grid,
+}
+
+impl Default for ViewMode {
+    fn default() -> Self {
+        ViewMode::Model
+    }
+}
+
 #[derive(Default)]
 pub struct MyState {
     pub dropped_files: Vec<egui::DroppedFile>,
     pub picked_path: Option<String>,
+    pub view_mode: ViewMode,
 }
 
 pub type DialogResponse = Option<rfd::FileHandle>;
@@ -325,6 +338,21 @@ pub fn ui_system(
     let mut top = egui::TopBottomPanel::top("top_panel")
         .resizable(true)
         .show(ctx, |ui| {
+            // Toggle button for view mode
+            ui.horizontal(|ui| {
+                let toggle_label = match state.view_mode {
+                    ViewMode::Model => "Show Grid",
+                    ViewMode::Grid => "Show 3D",
+                };
+                if ui.button(toggle_label).clicked() {
+                    state.view_mode = if state.view_mode == ViewMode::Model {
+                        ViewMode::Grid
+                    } else {
+                        ViewMode::Model
+                    };
+                }
+            });
+
             let path = open_file.0.clone(); // std::path::Path::new(&directory.0).join(entry.name.clone());
             if path != "".to_string() {
                 ui.horizontal(|ui| {
@@ -388,43 +416,75 @@ pub fn ui_system(
     top *= window.scale_factor();
     bottom *= window.scale_factor();
 
-    // -------------------------------------------------
-    // |  left   |            top   ^^^^^^   |  right  |
-    // |  panel  |           panel  height   |  panel  |
-    // |         |                  vvvvvv   |         |
-    // |         |---------------------------|         |
-    // |         |                           |         |
-    // |<-width->|          viewport         |<-width->|
-    // |         |                           |         |
-    // |         |---------------------------|         |
-    // |         |          bottom   ^^^^^^  |         |
-    // |         |          panel    height  |         |
-    // |         |                   vvvvvv  |         |
-    // -------------------------------------------------
-    //
-    // The upper left point of the viewport is the width of the left panel and the height of the
-    // top panel
-    //
-    // The width of the viewport the width of the top/bottom panel
-    // Alternative the width can be calculated as follow:
-    // size.x = window width - left panel width - right panel width
-    //
-    // The height of the viewport is:
-    // size.y = window height - top panel height - bottom panel height
-    //
-    // Therefore we use the alternative for the width, as we can callculate the Viewport as
-    // following:
+    // Center view area
+    // Render grid of 2D cards if in grid mode, otherwise set camera viewport as usual
+    if state.view_mode == ViewMode::Grid {
+        egui::CentralPanel::default().show(ctx, |ui| {
+             egui::ScrollArea::vertical().show(ui, |ui| {
+            ui.heading("File Grid");
+            let num_columns = 4;
+            let card_size = egui::vec2(120.0, 120.0);
+            let spacing = 16.0;
 
-    let pos = UVec2::new(left as u32, top as u32);
-    let size = UVec2::new(window.physical_width(), window.physical_height())
-        - pos
-        - UVec2::new(right as u32, bottom as u32);
-
-    camera.viewport = Some(Viewport {
-        physical_position: pos,
-        physical_size: size,
-        ..default()
+            egui::Grid::new("file_grid")
+                .num_columns(num_columns)
+                .spacing([spacing, spacing])
+                .show(ui, |ui| {
+                    for (i, entry) in file_list.0.iter().enumerate() {
+                        ui.vertical_centered(|ui| {
+                            // Placeholder for image: use a colored rect for now
+                            ui.add_sized(card_size, egui::widgets::ImageButton::new(
+                                egui::include_image!("../assets/icons/file.png")
+                                
+                            ));
+                            ui.label(&entry.name);
+                        });
+                        if (i + 1) % num_columns == 0 {
+                            ui.end_row();
+                        }
+                    }
+                });
+        });
     });
+    } else {
+        // -------------------------------------------------
+        // |  left   |            top   ^^^^^^   |  right  |
+        // |  panel  |           panel  height   |  panel  |
+        // |         |                  vvvvvv   |         |
+        // |         |---------------------------|         |
+        // |         |                           |         |
+        // |<-width->|          viewport         |<-width->|
+        // |         |                           |         |
+        // |         |---------------------------|         |
+        // |         |          bottom   ^^^^^^  |         |
+        // |         |          panel    height  |         |
+        // |         |                   vvvvvv  |         |
+        // -------------------------------------------------
+        //
+        // The upper left point of the viewport is the width of the left panel and the height of the
+        // top panel
+        //
+        // The width of the viewport the width of the top/bottom panel
+        // Alternative the width can be calculated as follow:
+        // size.x = window width - left panel width - right panel width
+        //
+        // The height of the viewport is:
+        // size.y = window height - top panel height - bottom panel height
+        //
+        // Therefore we use the alternative for the width, as we can callculate the Viewport as
+        // following:
+
+        let pos = UVec2::new(left as u32, top as u32);
+        let size = UVec2::new(window.physical_width(), window.physical_height())
+            - pos
+            - UVec2::new(right as u32, bottom as u32);
+
+        camera.viewport = Some(Viewport {
+            physical_position: pos,
+            physical_size: size,
+            ..default()
+        });
+    }
 
     Ok(())
 }

@@ -2,7 +2,7 @@ use bevy::{
     camera::{Exposure, Viewport, visibility::RenderLayers},
     core_pipeline::{prepass::{DepthPrepass, MotionVectorPrepass, NormalPrepass}, tonemapping::Tonemapping},
     light::CascadeShadowConfigBuilder,
-    pbr::{AtmospherePlugin, ExtendedMaterial},
+    pbr::{AtmospherePlugin, ExtendedMaterial },
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
     window::PrimaryWindow,
@@ -11,9 +11,9 @@ use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
     PrimaryEguiContext, egui,
 };
-use bevy_enhanced_input::{EnhancedInputPlugin, prelude::InputContextAppExt};
+use bevy_enhanced_input::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-use bytesize::ByteSize;
+use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use std::{env, f32::consts::PI, fs};
 use view3d::{
     files::{
@@ -61,6 +61,7 @@ fn main() {
         .add_plugins(PanOrbitCameraPlugin)
         .add_plugins(EguiPlugin::default())
         .add_plugins(EnhancedInputPlugin)
+        .add_plugins(WireframePlugin::default())
         .add_plugins(MaterialPlugin::<
             ExtendedMaterial<StandardMaterial, EnvironmentMaterial>,
         >::default())
@@ -75,10 +76,17 @@ fn main() {
         .add_observer(handle_file_nav_down)
         .add_observer(check_model_loaded)
         .add_observer(change_material)
+         .add_observer(toggle_wireframe)
         //input
         .add_input_context::<UiKeyAction>()
+         .add_input_context::<SystemAction>()
         .run();
 }
+
+
+
+#[derive(Component)]
+pub struct SystemAction;
 
 // Set up the example entities for the 3D scene. The only important thing is a camera which
 // renders directly to the window.
@@ -96,6 +104,20 @@ fn setup_scene(
     let entries = list_approved_dir_files(&directory.0, *sort_mode);
 
     commands.insert_resource(FileList(entries));
+
+   
+  commands.spawn((
+        SystemAction,
+        actions!( SystemAction[             
+             (Action::<ToggleWireframe>::new(), bindings![KeyCode::KeyR]),
+            // (
+            //     Action::<Pause>::new(),
+            //     Press::new(1.0),
+            //     bindings![KeyCode::KeyP],
+            // )
+            ]
+        ),
+    ));
 
     // Disable the automatic creation of a primary context to set it up manually for the camera we need.
     egui_global_settings.auto_create_primary_context = false;
@@ -232,3 +254,15 @@ use bevy::{
 // pub(super) fn plugin(app: &mut App) {
 //     let _ = app;
 // }
+
+
+#[derive(InputAction)]
+#[action_output(bool)]
+pub struct ToggleWireframe;
+
+pub fn toggle_wireframe(
+    trigger: On<Complete<ToggleWireframe>>,
+    mut wireframe_config: ResMut<WireframeConfig>,
+) {
+    wireframe_config.global = !wireframe_config.global;
+}
