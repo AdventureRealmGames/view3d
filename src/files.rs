@@ -261,3 +261,45 @@ pub struct ModelInfo {
     pub polygon_count: usize,
     pub vertex_count: usize,
 }
+
+
+
+pub fn open_finder(path: String) -> Result<(), String> {
+    println!("Opening in Finder: {:?}", path);
+    
+    // On macOS, use 'open -R' to reveal the file in Finder
+    // On other platforms, open the parent directory
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        match Command::new("open")
+            .arg("-R")
+            .arg(&path)
+            .spawn()
+        {
+            Ok(_) => Ok(()),
+            Err(err) => Err(format!(
+                "Failed to reveal '{}' in Finder: {}",
+                path, err
+            )),
+        }
+    }
+    
+    #[cfg(not(target_os = "macos"))]
+    {
+        use std::path::Path;
+        // On other platforms, open the parent directory
+        let dir = Path::new(&path)
+            .parent()
+            .and_then(|p| p.to_str())
+            .unwrap_or(".");
+        
+        match open::that(dir) {
+            Ok(()) => Ok(()),
+            Err(err) => Err(format!(
+                "Failed to open directory '{}': {}",
+                dir, err
+            )),
+        }
+    }
+}

@@ -2,7 +2,7 @@ use crate::{
     files::{
         CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile,
         ShowEditFileName, SortMode, check_dir_changed, check_open_file_changed,
-        dir_list_approved_files, file_dir_path,
+        dir_list_approved_files, file_dir_path, open_finder,
     },
     style::styled_button,
     thumbnails::{GenerateThumbnail, ThumbnailCache, ThumbnailState},
@@ -16,7 +16,8 @@ use bevy::{
 };
 use bevy_egui::{
     EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
-    EguiUserTextures, PrimaryEguiContext, egui::{self, Color32},
+    EguiUserTextures, PrimaryEguiContext,
+    egui::{self, Color32},
 };
 use bevy_enhanced_input::condition::press::Press;
 use bevy_enhanced_input::{action::Action, actions, prelude::*};
@@ -188,13 +189,12 @@ pub fn ui_system(
     let ctx = contexts.ctx_mut()?;
 
     let my_frame = egui::containers::Frame {
-        
-        fill: egui::Color32::from_rgb(15, 16,17),
+        fill: egui::Color32::from_rgb(15, 16, 17),
         ..Default::default()
     };
 
     let mut left = egui::SidePanel::left("left_panel")
-    .frame(my_frame)
+        .frame(my_frame)
         .resizable(true)
         .show(ctx, |ui| {
             // text input section
@@ -348,7 +348,7 @@ pub fn ui_system(
     // });
 
     let mut right = egui::SidePanel::right("right_panel")
-     .frame(my_frame)
+        .frame(my_frame)
         .resizable(true)
         .show(ctx, |ui| {
             if open_file.0 != "".to_string() {
@@ -382,7 +382,7 @@ pub fn ui_system(
         .width(); // height is ignored, as the panel has a height of 100% of the screen
 
     let mut top = egui::TopBottomPanel::top("top_panel")
-     .frame(my_frame)
+        .frame(my_frame)
         .resizable(true)
         .show(ctx, |ui| {
             // Toggle button for view mode
@@ -405,7 +405,7 @@ pub fn ui_system(
                 ui.horizontal(|ui| {
                     if show_edit_file_name.0 {
                         ui.add_sized(
-                            ui.available_size() - bevy_egui::egui::Vec2::new(40.0, 0.0),
+                            ui.available_size() - bevy_egui::egui::Vec2::new(80.0, 0.0),
                             egui::TextEdit::singleline(&mut edit_file_name.0),
                         );
                         //ui.text_edit_singleline(&mut edit_file_name.0);
@@ -434,6 +434,12 @@ pub fn ui_system(
                             edit_file_name.0 = path;
                             show_edit_file_name.0 = true;
                         }
+
+                        if ui.button( "Find File")                            .clicked()                        {
+                            let res = open_finder(open_file.0.clone());
+
+                        println!("res {:?}",res);
+                        }
                     }
 
                     //let response = styled_button(ui, format!("Rename").as_ref(), false, is_selected);
@@ -451,8 +457,8 @@ pub fn ui_system(
         .rect
         .height(); // width is ignored, as the panel has a width of 100% of the screen
     let mut bottom = egui::TopBottomPanel::bottom("bottom_panel")
-     .frame(my_frame)
-        .resizable(true)        
+        .frame(my_frame)
+        .resizable(true)
         .show(ctx, |ui| {
             ui.label("");
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
@@ -471,61 +477,64 @@ pub fn ui_system(
     // Render grid of 2D cards if in grid mode, otherwise set camera viewport as usual
     if state.view_mode == ViewMode::Grid {
         egui::CentralPanel::default()
-        .frame(my_frame)
-        .show(ctx, |ui| {
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                //ui.heading("File Grid");
-                let card_size = egui::vec2(140.0, 140.0);
-                let spacing = 8.0;
+            .frame(my_frame)
+            .show(ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    //ui.heading("File Grid");
+                    let card_size = egui::vec2(140.0, 140.0);
+                    let spacing = 8.0;
 
-                // Compute number of columns based on available width
-                let available_width = ui.available_width();
-                let num_columns = ((available_width + spacing) / (card_size.x + spacing))
-                    .floor()
-                    .max(1.0) as usize;
+                    // Compute number of columns based on available width
+                    let available_width = ui.available_width();
+                    let num_columns = ((available_width + spacing) / (card_size.x + spacing))
+                        .floor()
+                        .max(1.0) as usize;
 
-                // Make the grid fill the available width
-                ui.set_width(available_width);
-                egui::Grid::new("file_grid")
-                    .num_columns(num_columns)
-                    .spacing([spacing, spacing])
-                    .show(ui, |ui| {
-                        for (i, entry) in file_list.0.iter().enumerate() {
-                            let entry_path =
-                                std::path::Path::new(&directory.0).join(entry.name.clone());
-                            if entry_path.is_dir() {
-                                continue;
-                            }
+                    // Make the grid fill the available width
+                    ui.set_width(available_width);
+                    egui::Grid::new("file_grid")
+                        .num_columns(num_columns)
+                        .spacing([spacing, spacing])
+                        .show(ui, |ui| {
+                            for (i, entry) in file_list.0.iter().enumerate() {
+                                let entry_path =
+                                    std::path::Path::new(&directory.0).join(entry.name.clone());
+                                if entry_path.is_dir() {
+                                    continue;
+                                }
 
-                            let entry_path_str = entry_path.to_str().unwrap_or("").to_string();
+                                let entry_path_str = entry_path.to_str().unwrap_or("").to_string();
 
-                            ui.vertical(|ui| {
-                                // Try to get thumbnail texture
-                                if let Some(texture_id) = thumbnail_textures.get(&entry_path_str) {
-                                    //println!("[UI] Displaying thumbnail for: {:?}", entry_path_str);
-                                    let button = egui::Button::image(egui::Image::new(
-                                        egui::load::SizedTexture::new(*texture_id, card_size),
-                                    ))
-                                    .fill(egui::Color32::from_rgb(0, 0, 0))
-                                    .stroke(egui::Stroke::NONE)
-                                    .corner_radius(8);
+                                ui.vertical(|ui| {
+                                    // Try to get thumbnail texture
+                                    if let Some(texture_id) =
+                                        thumbnail_textures.get(&entry_path_str)
+                                    {
+                                        //println!("[UI] Displaying thumbnail for: {:?}", entry_path_str);
+                                        let button = egui::Button::image(egui::Image::new(
+                                            egui::load::SizedTexture::new(*texture_id, card_size),
+                                        ))
+                                        .fill(egui::Color32::from_rgb(0, 0, 0))
+                                        .stroke(egui::Stroke::NONE)
+                                        .corner_radius(8);
 
-                                    if ui.add_sized(card_size, button).clicked() {
-                                        open_file.0 = entry_path_str.clone();
-                                        state.view_mode = ViewMode::Model;
-                                    }
-                                } else {
-                                    //println!("[UI] Displaying placeholder for: {:?}", entry_path_str);
-                                    // Request thumbnail generation if not in cache, show placeholder
-                                    if !thumbnail_cache.thumbnails.contains_key(&entry_path_str) {
-                                        //println!("[UI] Requesting thumbnail generation for: {:?}", entry_path_str);
-                                        thumbnail_events.write(GenerateThumbnail {
-                                            file_path: entry_path_str.clone(),
-                                        });
+                                        if ui.add_sized(card_size, button).clicked() {
+                                            open_file.0 = entry_path_str.clone();
+                                            state.view_mode = ViewMode::Model;
+                                        }
                                     } else {
-                                        //println!("[UI] Thumbnail in cache but no texture_id for: {:?}", entry_path_str);
-                                    }
-                                    let button = egui::Button::image(egui::include_image!(
+                                        //println!("[UI] Displaying placeholder for: {:?}", entry_path_str);
+                                        // Request thumbnail generation if not in cache, show placeholder
+                                        if !thumbnail_cache.thumbnails.contains_key(&entry_path_str)
+                                        {
+                                            //println!("[UI] Requesting thumbnail generation for: {:?}", entry_path_str);
+                                            thumbnail_events.write(GenerateThumbnail {
+                                                file_path: entry_path_str.clone(),
+                                            });
+                                        } else {
+                                            //println!("[UI] Thumbnail in cache but no texture_id for: {:?}", entry_path_str);
+                                        }
+                                        let button = egui::Button::image(egui::include_image!(
                                         "../assets/icons/file.png"
                                     ))
                                     .corner_radius(egui::CornerRadius::same(8))
@@ -535,22 +544,25 @@ pub fn ui_system(
                                     //)
                                     ;
 
-                                    if ui.add_sized(card_size, button).clicked() {
-                                        open_file.0 = entry_path_str.clone();
-                                        state.view_mode = ViewMode::Model;
+                                        if ui.add_sized(card_size, button).clicked() {
+                                            open_file.0 = entry_path_str.clone();
+                                            state.view_mode = ViewMode::Model;
+                                        }
                                     }
+                                    //ui.label(&entry.name);
+                                    //ui.add(egui::Label::new(&entry.name).wrap());
+                                    ui.add_sized(
+                                        egui::vec2(120.0, 16.0),
+                                        egui::Label::new(&entry.name).truncate(),
+                                    );
+                                });
+                                if (i + 1) % num_columns == 0 {
+                                    ui.end_row();
                                 }
-                                //ui.label(&entry.name);
-                                //ui.add(egui::Label::new(&entry.name).wrap());
-                                ui.add_sized(egui::vec2(120.0, 16.0),egui::Label::new(&entry.name).truncate());
-                            });
-                            if (i + 1) % num_columns == 0 {
-                                ui.end_row();
                             }
-                        }
-                    });
+                        });
+                });
             });
-        });
     } else {
         // -------------------------------------------------
         // |  left   |            top   ^^^^^^   |  right  |
