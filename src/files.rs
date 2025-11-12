@@ -107,6 +107,7 @@ pub fn dir_list_approved_files(path: &str, sort_mode: SortMode) -> Vec<FileEntry
                 // .map(|e| e.file_name().to_string_lossy().to_string())
                 //.collect();
                 .map(|e| {
+                    //if e.exis
                     let is_dir = e.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
                     let fe = FileEntry {
                         name: e.file_name().to_string_lossy().to_string(),

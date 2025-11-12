@@ -6,6 +6,7 @@ use bevy_egui::{
     PrimaryEguiContext,
 };
 use bevy_enhanced_input::prelude::*;
+use bevy_enhanced_input::condition::press::Press;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use std::{env, f32::consts::PI};
@@ -108,15 +109,21 @@ fn setup_scene(
    
   commands.spawn((
         SystemAction,
-        actions!( SystemAction[             
-             (Action::<ToggleWireframe>::new(), bindings![KeyCode::KeyR]),
-            // (
-            //     Action::<Pause>::new(),
-            //     Press::new(1.0),
-            //     bindings![KeyCode::KeyP],
-            // )
-            ]
-        ),
+        Actions::<SystemAction>::spawn(SpawnWith(|context: &mut ActionSpawner<_>| {
+            // Create the individual key actions that will be part of the chord
+            let alt_key = context
+                .spawn((Action::<AltKey>::new(), bindings![KeyCode::AltLeft]))
+                .id();
+            let r_key = context
+                .spawn((Action::<RKey>::new(),  Press::new(1.0), bindings![KeyCode::KeyR]))
+                .id();
+            
+            // Create the chord action that requires both keys
+            context.spawn((
+                Action::<ToggleWireframe>::new(),               
+                Chord::new([alt_key, r_key]),
+            ));
+        })),
     ));
 
     // Disable the automatic creation of a primary context to set it up manually for the camera we need.
@@ -264,13 +271,23 @@ use bevy::{
 // }
 
 
+// Helper actions for chord members
+#[derive(InputAction)]
+#[action_output(bool)]
+pub struct AltKey;
+
+#[derive(InputAction)]
+#[action_output(bool)]
+pub struct RKey;
+
 #[derive(InputAction)]
 #[action_output(bool)]
 pub struct ToggleWireframe;
 
 pub fn toggle_wireframe(
-    _trigger: On<Complete<ToggleWireframe>>,
+    _trigger: On<Fire<ToggleWireframe>>,
     mut wireframe_config: ResMut<WireframeConfig>,
 ) {
+    info!("toggling wireframe: {}", wireframe_config.global);
     wireframe_config.global = !wireframe_config.global;
 }
