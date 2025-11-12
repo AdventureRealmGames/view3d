@@ -5,8 +5,6 @@ use bevy::{
 };
 use bevy::asset::LoadState;
 use std::collections::{HashMap, VecDeque};
-use std::hash::{Hash, Hasher};
-use std::collections::hash_map::DefaultHasher;
 
 use crate::objects::ColorOverride;
 
@@ -62,6 +60,7 @@ pub const THUMBNAIL_LAYER: usize = 1;
 pub const THUMBNAIL_SIZE: u32 = 256;
 
 /// Compute a stable render layer index (1..=31) for a given file path to isolate thumbnail renders.
+/*
 fn compute_layer(file_path: &str) -> u8 {
     let mut hasher = DefaultHasher::new();
     file_path.hash(&mut hasher);
@@ -69,6 +68,7 @@ fn compute_layer(file_path: &str) -> u8 {
     // Use layers 1..=31 (reserve 0 for the main world)
     ((hash % 31) as u8) + 1
 }
+*/
 
 /// Request to generate a thumbnail for a file
 #[derive(Message)]
@@ -137,7 +137,7 @@ pub fn process_thumbnail_queue(
     mut commands: Commands,
     mut queue: ResMut<ThumbnailQueue>,
     mut cache: ResMut<ThumbnailCache>,
-    mut images: ResMut<Assets<Image>>,
+    _images: Res<Assets<Image>>,
     asset_server: Res<AssetServer>,
 ) {
     if queue.busy {

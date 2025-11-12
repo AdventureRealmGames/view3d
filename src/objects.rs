@@ -1,28 +1,26 @@
-use bevy::asset::RenderAssetUsages;
-use bevy::camera::visibility::NoFrustumCulling;
-use bevy::color::palettes::css::{RED, WHITE};
-use bevy::math::ops::sqrt;
-use bevy::mesh::{Indices, MeshVertexBufferLayoutRef, PrimitiveTopology};
-use bevy::pbr::wireframe::Wireframe;
+/* use bevy::asset::RenderAssetUsages; */
+/* use bevy::camera::visibility::NoFrustumCulling; */
+/* use bevy::color::palettes::css::{RED, WHITE}; */
+/* use bevy::math::ops::sqrt; */
+/* use bevy::mesh::{Indices, MeshVertexBufferLayoutRef, PrimitiveTopology}; */
+/* use bevy::pbr::wireframe::Wireframe; */
 use bevy::pbr::{
-    ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline,
-    MaterialPipeline, MaterialPipelineKey, OpaqueRendererMethod,
+    ExtendedMaterial, MaterialExtension,
 };
 //use bevy::render::mesh::{Indices, MeshVertexBufferLayoutRef, PrimitiveTopology};
 use bevy::render::render_resource::{
-    AsBindGroup, BlendComponent, BlendFactor, BlendOperation, BlendState, FrontFace,
-    RenderPipelineDescriptor, SpecializedMeshPipelineError,
+    AsBindGroup,
 };
 use bevy::scene::SceneInstanceReady;
 use bevy::shader::ShaderRef;
 //use bevy::render::view::RenderLayers;
-use bevy::window::{PrimaryWindow, WindowResolution};
-use bevy::{light::NotShadowCaster, prelude::*};
-use bevy::{prelude::*, reflect::TypePath};
-use bevy_render::render_resource::ShaderType;
-use rand::prelude::*;
+/* use bevy::window::WindowResolution; */
+use bevy::prelude::*;
+/* use bevy::reflect::TypePath; */
+/* use bevy_render::render_resource::ShaderType; */
+/* use rand::prelude::*; */
 
-use std::f32::consts::PI;
+/* use std::f32::consts::PI; */
 
 /// This is added to a [`SceneRoot`] and will cause the [`StandardMaterial::base_color`]
 /// of all materials to be overwritten
@@ -37,16 +35,16 @@ pub fn change_material(
     mesh_materials: Query<&MeshMaterial3d<StandardMaterial>>,
     mut asset_materials: ResMut<Assets<StandardMaterial>>,
     mut ext_materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, EnvironmentMaterial>>>,
-    asset_server: Res<AssetServer>,
+    _asset_server: Res<AssetServer>,
     time: Res<Time>,
 ) {
     // Get the `ColorOverride` of the entity, if it does not have a color override, skip
-    let Ok(color_override) = color_override.get(trigger.target()) else {
+    let Ok(color_override) = color_override.get(trigger.event().entity) else {
         return;
     };
 
     // Iterate over all children recursively
-    for descendants in children.iter_descendants(trigger.target()) {
+    for descendants in children.iter_descendants(trigger.event().entity) {
         // Get the material of the descendant
         if let Some(material) = mesh_materials
             .get(descendants)
@@ -138,6 +136,7 @@ impl MaterialExtension for EnvironmentMaterial {
     } */
 }
 
+/*
 fn update_environment_material_time(
     time: Res<Time>,
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, EnvironmentMaterial>>>,
@@ -147,4 +146,4 @@ fn update_environment_material_time(
         material.extension.time = current_time;
     }
 }
-
+*/

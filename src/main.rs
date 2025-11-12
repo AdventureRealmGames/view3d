@@ -1,14 +1,14 @@
 use bevy::{
-    camera::{Exposure, Viewport, visibility::RenderLayers}, color::palettes::css::BLUE, core_pipeline::{prepass::{DepthPrepass, MotionVectorPrepass, NormalPrepass}, tonemapping::Tonemapping}, light::CascadeShadowConfigBuilder, pbr::{AtmospherePlugin, ExtendedMaterial }, prelude::*, tasks::{AsyncComputeTaskPool, Task, block_on, poll_once}, window::PrimaryWindow
+    camera::{visibility::RenderLayers}, core_pipeline::{prepass::{DepthPrepass, MotionVectorPrepass, NormalPrepass}, tonemapping::Tonemapping}, light::CascadeShadowConfigBuilder, pbr::ExtendedMaterial, prelude::*
 };
 use bevy_egui::{
-    EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
-    PrimaryEguiContext, egui,
+    EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
+    PrimaryEguiContext,
 };
 use bevy_enhanced_input::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
-use std::{env, f32::consts::PI, fs};
+use std::{env, f32::consts::PI};
 use view3d::{
     files::{
         CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile,
@@ -16,12 +16,10 @@ use view3d::{
         home_dir, dir_list_approved_files,
     },
     objects::{EnvironmentMaterial, change_material},
-    style::styled_button,
     ui::{UiKeyAction, handle_file_nav_down, handle_file_nav_up, setup_ui, ui_system},
     thumbnails::{ThumbnailCache, ThumbnailQueue, GenerateThumbnail, handle_thumbnail_requests, process_thumbnail_queue, cleanup_thumbnail_cameras},
 };
 
-use view3d::envlight::SolidColorEnvironmentMapLight;
 
 fn main() {
     let args = env::args();
@@ -51,7 +49,7 @@ fn main() {
         .insert_resource(SortMode::Name)
         .init_resource::<ThumbnailCache>()
         .init_resource::<ThumbnailQueue>()
-        .add_event::<GenerateThumbnail>()
+        .add_message::<GenerateThumbnail>()
         //plugins
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             unapproved_path_mode: bevy::asset::UnapprovedPathMode::Allow,
@@ -93,15 +91,15 @@ pub struct SystemAction;
 // Set up the example entities for the 3D scene. The only important thing is a camera which
 // renders directly to the window.
 fn setup_scene(
-    mut directory: ResMut<Directory>,
+    directory: Res<Directory>,
     mut commands: Commands,
     mut egui_global_settings: ResMut<EguiGlobalSettings>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut sort_mode: ResMut<SortMode>,
-    asset_server: Res<AssetServer>,
+    _meshes: Res<Assets<Mesh>>,
+    _materials: Res<Assets<StandardMaterial>>,
+    sort_mode: Res<SortMode>,
+    _asset_server: Res<AssetServer>,
     //mut image_assets: &mut Assets<Image>,
-    mut image_assets: ResMut<Assets<Image>>,
+    _image_assets: Res<Assets<Image>>,
 ) {
     let entries = dir_list_approved_files(&directory.0, *sort_mode);
 
@@ -251,6 +249,7 @@ fn setup_scene(
     ));
 }
 
+/*
 use bevy::{
     asset::RenderAssetUsages,
     prelude::*,
@@ -258,6 +257,7 @@ use bevy::{
         Extent3d, TextureDimension, TextureFormat, TextureViewDescriptor, TextureViewDimension,
     },
 };
+*/
 
 // pub(super) fn plugin(app: &mut App) {
 //     let _ = app;
@@ -269,7 +269,7 @@ use bevy::{
 pub struct ToggleWireframe;
 
 pub fn toggle_wireframe(
-    trigger: On<Complete<ToggleWireframe>>,
+    _trigger: On<Complete<ToggleWireframe>>,
     mut wireframe_config: ResMut<WireframeConfig>,
 ) {
     wireframe_config.global = !wireframe_config.global;

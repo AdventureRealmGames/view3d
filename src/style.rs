@@ -1,18 +1,7 @@
-use std::f32::consts::PI;
 
-use bevy::{
-    ecs::relationship::RelationshipSourceCollection,
-    light::CascadeShadowConfigBuilder,
-    prelude::*,
-    tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
-    window::PrimaryWindow,
-};
+use bevy::prelude::*;
 
-use bevy_egui::{
-    EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
-    PrimaryEguiContext, egui,
-};
-use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
+use bevy_egui::egui;
 
 pub fn styled_button(
     ui: &mut egui::Ui,
@@ -22,7 +11,7 @@ pub fn styled_button(
     min_size: Option<egui::Vec2>,
 ) -> egui::Response {
     // Define colors for different states
-    let (bg_color, hover_color, text_color) = match (dir, is_selected) {
+    let (bg_color, _hover_color, text_color) = match (dir, is_selected) {
         // Selected file - blue theme
         (false, true) => (
             egui::Color32::from_rgb(80, 80, 90),

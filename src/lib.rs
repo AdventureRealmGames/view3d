@@ -5,26 +5,6 @@ pub mod envlight;
 pub mod objects;
 pub mod thumbnails;
 
-use std::fs::ReadDir;
-use serde::{Deserialize, Serialize};
-use std::fs::{self};
-use std::f32::consts::PI;
-use bevy::{
-    ecs::relationship::RelationshipSourceCollection,
-    light::CascadeShadowConfigBuilder,
-    prelude::*,
-
-    tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
-    window::PrimaryWindow,
-};
-
-use bevy_egui::{
-    EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
-    PrimaryEguiContext, egui,
-};
-use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-
-use crate::files::{Directory, FileEntry, FileList, SortMode};
 
 
 

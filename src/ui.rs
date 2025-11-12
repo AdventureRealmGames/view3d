@@ -1,29 +1,26 @@
 use crate::{
     files::{
-        CurrentGltfEntity, Directory, EditFileName, FileList, ModelInfo, OpenFile,
-        ShowEditFileName, SortMode, check_dir_changed, check_open_file_changed,
+        Directory, EditFileName, FileList, ModelInfo, OpenFile,
+        ShowEditFileName, SortMode,
         dir_list_approved_files, file_dir_path, open_finder,
     },
     style::styled_button,
     thumbnails::{GenerateThumbnail, ThumbnailCache, ThumbnailState},
 };
 use bevy::{
-    camera::{Viewport, visibility::RenderLayers},
-    light::CascadeShadowConfigBuilder,
+    camera::Viewport,
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task, block_on, poll_once},
     window::PrimaryWindow,
 };
 use bevy_egui::{
-    EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
-    EguiUserTextures, PrimaryEguiContext,
-    egui::{self, Color32},
+    EguiContext, EguiContexts,
+    egui::self,
 };
 use bevy_enhanced_input::condition::press::Press;
 use bevy_enhanced_input::{action::Action, actions, prelude::*};
-use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bytesize::ByteSize;
-use std::{f32::consts::PI, fs, path::Path};
+use std::{fs, path::Path};
 
 #[derive(Component)]
 pub struct UiKeyAction;
@@ -84,9 +81,9 @@ pub type DialogResponse = Option<rfd::FileHandle>;
 // then check for keyboard nav stuff
 pub fn handle_file_nav_up(
     _trigger: On<Fire<FileNavUp>>,
-    mut file_list: ResMut<FileList>,
+    file_list: Res<FileList>,
     mut open_file: ResMut<OpenFile>,
-    mut directory: ResMut<Directory>,
+    directory: Res<Directory>,
 ) {
     let path = Path::new(&open_file.0)
         .file_name()
@@ -106,9 +103,9 @@ pub fn handle_file_nav_up(
 
 pub fn handle_file_nav_down(
     _trigger: On<Fire<FileNavDown>>,
-    mut file_list: ResMut<FileList>,
+    file_list: Res<FileList>,
     mut open_file: ResMut<OpenFile>,
-    mut directory: ResMut<Directory>,
+    directory: Res<Directory>,
 ) {
     let path = Path::new(&open_file.0)
         .file_name()
@@ -132,7 +129,7 @@ pub fn ui_system(
     mut directory: ResMut<Directory>,
     mut open_file: ResMut<OpenFile>,
     mut contexts: EguiContexts,
-    images: Res<Assets<Image>>,
+    _images: Res<Assets<Image>>,
     mut camera: Single<&mut Camera, Without<EguiContext>>,
     mut state: Local<MyState>,
     mut file_dialog: Local<Option<Task<DialogResponse>>>,
@@ -141,7 +138,7 @@ pub fn ui_system(
     mut sort_mode: ResMut<SortMode>,
     mut show_edit_file_name: ResMut<ShowEditFileName>,
     mut edit_file_name: ResMut<EditFileName>,
-    mut model_info: ResMut<ModelInfo>,
+    model_info: Res<ModelInfo>,
     thumbnail_cache: Res<ThumbnailCache>,
     mut thumbnail_events: MessageWriter<GenerateThumbnail>,
 ) -> Result {

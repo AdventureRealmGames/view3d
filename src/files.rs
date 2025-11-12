@@ -1,17 +1,9 @@
 use bevy::{
-    color::palettes, ecs::relationship::RelationshipSourceCollection, light::CascadeShadowConfigBuilder, pbr::ExtendedMaterial, prelude::*, scene::SceneInstanceReady, tasks::{AsyncComputeTaskPool, Task, block_on, poll_once}, window::PrimaryWindow
+    color::palettes, prelude::*, scene::SceneInstanceReady
 };
 use directories::UserDirs;
 use serde::{Deserialize, Serialize};
-use std::f32::consts::PI;
-use std::fs::ReadDir;
-use std::fs::{self};
 
-use bevy_egui::{
-    EguiContext, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass,
-    PrimaryEguiContext, egui,
-};
-use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 
 use crate::objects::{ColorOverride};
 
@@ -229,12 +221,12 @@ pub fn home_dir() -> String {
 
 pub fn check_model_loaded(
     trigger: On<SceneInstanceReady>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut scene_assets: ResMut<Assets<Scene>>,
-    asset_server: Res<AssetServer>,
+    meshes: Res<Assets<Mesh>>,
+    _scene_assets: Res<Assets<Scene>>,
+    _asset_server: Res<AssetServer>,
     mut model_info: ResMut<ModelInfo>,
 ) {
-    let entity = trigger.event().entity;
+    let _entity = trigger.event().entity;
 
     println!("Model loaded!");
 

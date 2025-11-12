@@ -8,9 +8,9 @@ use bevy::{
     },
 };
 
-pub(super) fn plugin(app: &mut App) {
-    let _ = app;
-}
+// pub(super) fn plugin(app: &mut App) {
+//     let _ = app;
+// }
 
 pub trait SolidColorEnvironmentMapLight {
     fn solid_color(assets: &mut Assets<Image>, color: Color) -> Self;
