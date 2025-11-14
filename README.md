@@ -1,4 +1,5 @@
-Actively developing and changing. 
+# 3D file viewer and browser using the Bevy framework to easily browse and view all your GLTF and GLB files.
+# Actively developing and changing. 
 
 
 # DOING
