@@ -19,6 +19,7 @@ use bevy_egui::{
 };
 use bevy_enhanced_input::condition::press::Press;
 use bevy_enhanced_input::{action::Action, actions, prelude::*};
+use bevy_panorbit_camera::PanOrbitCamera;
 use bytesize::ByteSize;
 use std::{fs, path::Path};
 
@@ -130,7 +131,7 @@ pub fn ui_system(
     mut open_file: ResMut<OpenFile>,
     mut contexts: EguiContexts,
     _images: Res<Assets<Image>>,
-    mut camera: Single<&mut Camera, Without<EguiContext>>,
+    mut camera: Single<&mut Camera, With<PanOrbitCamera>>,
     mut state: Local<MyState>,
     mut file_dialog: Local<Option<Task<DialogResponse>>>,
     window: Single<&mut Window, With<PrimaryWindow>>,
